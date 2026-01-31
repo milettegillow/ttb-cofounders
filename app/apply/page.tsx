@@ -1,5 +1,14 @@
 import { redirect } from 'next/navigation'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
-export default function Apply() {
+export default async function Apply() {
+  // Check if user is signed in - redirect to profile if so
+  const supabase = await createSupabaseServerClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (session) {
+    redirect('/profile')
+  }
+  
   redirect('/')
 }

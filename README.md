@@ -1,5 +1,19 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment Variables
+
+### Required
+- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY` - Your Supabase service role key (server-side only)
+
+### Optional
+- `NEXT_PUBLIC_SITE_URL` - The canonical origin URL for magic-link redirects
+  - **Local dev** (`.env.local`): `NEXT_PUBLIC_SITE_URL=http://localhost:3000`
+  - **Production** (Vercel): `NEXT_PUBLIC_SITE_URL=https://cofounders.thetechbros.io`
+  - **Preview** (Vercel): `NEXT_PUBLIC_SITE_URL=https://$VERCEL_URL` or set manually
+  - If not set, defaults to `window.location.origin` (works for local dev)
+
 ## Getting Started
 
 First, run the development server:

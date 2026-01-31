@@ -252,6 +252,39 @@ export default function Profile() {
 
   return (
     <div>
+      {/* Identity and sign out */}
+      <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <p style={{ margin: 0, color: 'var(--muted)' }}>
+          Signed in as {session.user.email}
+        </p>
+        <button 
+          onClick={async () => {
+            await supabase.auth.signOut()
+            window.location.href = '/'
+          }}
+          style={{
+            background: 'none',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            padding: '6px 12px',
+            cursor: 'pointer',
+            color: 'var(--ink)',
+            fontSize: '14px',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--pink)'
+            e.currentTarget.style.opacity = '0.9'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.opacity = '1'
+          }}
+        >
+          Sign out
+        </button>
+      </div>
+
       <h1>Profile</h1>
 
       {message && <p>{message}</p>}

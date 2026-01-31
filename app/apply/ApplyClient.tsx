@@ -228,10 +228,14 @@ export default function ApplyClient() {
     setLoading(true)
     setMessage(null)
 
+    // Use NEXT_PUBLIC_SITE_URL for redirect, fallback to window.location.origin for local dev
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    const emailRedirectTo = `${siteUrl}/auth/callback`
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: window.location.origin + '/',
+        emailRedirectTo,
       },
     })
 
