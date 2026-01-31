@@ -61,7 +61,7 @@ export default function Nav() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    window.location.href = '/apply'
+    window.location.href = '/'
   }
 
   if (loading || !session) {

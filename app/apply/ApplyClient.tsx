@@ -231,7 +231,7 @@ export default function ApplyClient() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: window.location.origin + '/apply',
+        emailRedirectTo: window.location.origin + '/',
       },
     })
 
@@ -379,7 +379,7 @@ export default function ApplyClient() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    window.location.href = '/apply'
+    window.location.href = '/'
   }
 
   return (

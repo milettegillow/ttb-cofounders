@@ -1,10 +1,5 @@
-import { Suspense } from 'react'
-import ApplyClient from './ApplyClient'
+import { redirect } from 'next/navigation'
 
 export default function Apply() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ApplyClient />
-    </Suspense>
-  )
+  redirect('/')
 }
