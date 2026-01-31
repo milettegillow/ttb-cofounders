@@ -272,7 +272,7 @@ export default function Discover() {
           top: '20px', 
           left: '50%', 
           transform: 'translateX(-50%)', 
-          background: '#4CAF50', 
+          background: 'var(--pink)', 
           color: 'white', 
           padding: '15px 20px', 
           borderRadius: '8px',
@@ -282,31 +282,20 @@ export default function Discover() {
         </div>
       )}
 
-      <div style={{ 
+      <div className="ttb-card" style={{ 
         width: '100%', 
         maxWidth: '500px', 
         margin: '20px 0',
-        padding: '30px',
-        border: '1px solid #ddd',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
         ...cardStyle,
       }}>
         <h2 style={{ fontSize: '32px', marginBottom: '10px' }}>{currentProfile.display_name}</h2>
         
-        <div style={{ 
-          display: 'inline-block', 
-          background: '#e0e0e0', 
-          padding: '5px 15px', 
-          borderRadius: '20px', 
-          marginBottom: '15px',
-          fontSize: '14px',
-        }}>
+        <span className="ttb-pill" style={{ marginBottom: '15px' }}>
           {currentProfile.role}
-        </div>
+        </span>
 
         {currentProfile.location && (
-          <p style={{ marginBottom: '15px', color: '#666' }}>📍 {currentProfile.location}</p>
+          <p style={{ marginBottom: '15px', color: 'var(--muted)' }}>📍 {currentProfile.location}</p>
         )}
 
         {currentProfile.skills && (
@@ -335,38 +324,22 @@ export default function Discover() {
         <button
           onClick={() => doSwipe('pass')}
           disabled={inFlight}
-          style={{
-            padding: '15px 40px',
-            fontSize: '18px',
-            background: '#f44336',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: inFlight ? 'not-allowed' : 'pointer',
-            opacity: inFlight ? 0.6 : 1,
-          }}
+          className="ttb-btn ttb-btn-secondary"
+          style={{ fontSize: '18px', padding: '15px 40px' }}
         >
           {inFlight ? 'Processing...' : 'Pass'}
         </button>
         <button
           onClick={() => doSwipe('like')}
           disabled={inFlight}
-          style={{
-            padding: '15px 40px',
-            fontSize: '18px',
-            background: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: inFlight ? 'not-allowed' : 'pointer',
-            opacity: inFlight ? 0.6 : 1,
-          }}
+          className="ttb-btn ttb-btn-primary"
+          style={{ fontSize: '18px', padding: '15px 40px' }}
         >
           {inFlight ? 'Processing...' : 'Like'}
         </button>
       </div>
 
-      <p style={{ marginTop: '20px', color: '#999', fontSize: '14px' }}>
+      <p style={{ marginTop: '20px', color: 'var(--muted)', fontSize: '14px' }}>
         Use ← → arrow keys to swipe
       </p>
     </div>

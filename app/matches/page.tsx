@@ -144,20 +144,13 @@ export default function Matches() {
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div>
       <h1 style={{ marginBottom: '30px' }}>Matches</h1>
 
       {matches.length === 0 ? (
-        <div style={{
-          background: '#1a1a1a',
-          border: '1px solid #333',
-          borderRadius: '12px',
-          padding: '40px',
-          textAlign: 'center',
-          color: '#fff',
-        }}>
+        <div className="ttb-card" style={{ textAlign: 'center', padding: '40px' }}>
           <h2 style={{ marginBottom: '10px', fontSize: '24px' }}>No matches yet</h2>
-          <p style={{ color: '#999', fontSize: '16px' }}>Head to Discover and start swiping.</p>
+          <p style={{ color: 'var(--muted)', fontSize: '16px' }}>Head to Discover and start swiping.</p>
         </div>
       ) : (
         <div style={{
@@ -174,15 +167,10 @@ export default function Matches() {
             return (
               <div
                 key={item.match.id}
+                className="ttb-card"
                 style={{
-                  background: '#1a1a1a',
-                  border: '1px solid #333',
-                  borderRadius: '12px',
-                  padding: '24px',
-                  color: '#fff',
                   display: 'flex',
                   flexDirection: 'column',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                 }}
               >
                 {/* Header */}
@@ -191,13 +179,7 @@ export default function Matches() {
                     <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
                       {item.profile.display_name}
                     </h2>
-                    <span style={{
-                      background: '#333',
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      color: '#ccc',
-                    }}>
+                    <span className="ttb-pill">
                       {item.profile.role}
                     </span>
                   </div>
@@ -281,18 +263,8 @@ export default function Matches() {
                           href={`https://wa.me/${digitsOnly}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{
-                            display: 'inline-block',
-                            width: '100%',
-                            textAlign: 'center',
-                            background: '#25D366',
-                            color: '#fff',
-                            padding: '12px 20px',
-                            borderRadius: '8px',
-                            textDecoration: 'none',
-                            fontWeight: '500',
-                            fontSize: '14px',
-                          }}
+                          className="ttb-btn ttb-btn-secondary"
+                          style={{ width: '100%' }}
                         >
                           Message on WhatsApp
                         </a>

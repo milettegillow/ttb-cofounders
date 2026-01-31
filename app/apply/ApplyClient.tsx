@@ -126,7 +126,7 @@ export default function ApplyClient() {
       {session ? (
         <>
           <p>Signed in as {session.user.email}</p>
-          <button onClick={handleSignOut}>Sign out</button>
+          <button onClick={handleSignOut} className="ttb-btn ttb-btn-secondary">Sign out</button>
         </>
       ) : (
         <>
@@ -143,7 +143,7 @@ export default function ApplyClient() {
               required
               disabled={loading}
             />
-            <button type="submit" disabled={loading}>
+            <button type="submit" disabled={loading} className="ttb-btn ttb-btn-primary">
               {loading ? 'Sending...' : 'Send magic link'}
             </button>
           </form>
@@ -197,7 +197,7 @@ export default function ApplyClient() {
                   </label>
                 </div>
                 {submitMessage && <p>{submitMessage}</p>}
-                <button type="submit" disabled={submitting}>
+                <button type="submit" disabled={submitting} className="ttb-btn ttb-btn-primary">
                   {submitting ? 'Submitting...' : 'Submit application'}
                 </button>
               </form>
@@ -210,8 +210,8 @@ export default function ApplyClient() {
               {application.status === 'approved' && (
                 <div>
                   <p>You're approved — complete your profile.</p>
-                  <Link href="/profile">
-                    <button>Go to Profile</button>
+                  <Link href="/profile" className="ttb-btn ttb-btn-primary">
+                    Go to Profile
                   </Link>
                 </div>
               )}

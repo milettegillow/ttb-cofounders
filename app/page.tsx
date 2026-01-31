@@ -13,8 +13,8 @@ export default function Home() {
       </ol>
 
       <div>
-        <Link href="/apply">
-          <button>Get Started</button>
+        <Link href="/apply" className="ttb-btn ttb-btn-primary">
+          Get Started
         </Link>
       </div>
     </div>

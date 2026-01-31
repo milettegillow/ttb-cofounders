@@ -376,14 +376,14 @@ export default function Profile() {
           </label>
         </div>
 
-        <button type="submit" disabled={saving}>
+        <button type="submit" disabled={saving} className="ttb-btn ttb-btn-primary">
           {saving ? 'Saving...' : 'Save Profile'}
         </button>
       </form>
 
       {profile && !profile.is_complete && (
         <div>
-          <button onClick={handleMarkComplete} disabled={markingComplete}>
+          <button onClick={handleMarkComplete} disabled={markingComplete} className="ttb-btn ttb-btn-secondary">
             {markingComplete ? 'Marking...' : 'Mark profile as complete'}
           </button>
         </div>
