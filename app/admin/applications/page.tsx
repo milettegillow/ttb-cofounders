@@ -6,9 +6,9 @@ import { supabase } from '@/src/lib/supabaseClient'
 
 type Application = {
   id: string
-  name: string
-  why_cofounder: string
-  what_building: string
+  email: string
+  linkedin: string
+  stem_background: string
   created_at: string
   status: string
 }
@@ -121,13 +121,13 @@ export default function AdminApplications() {
           {applications.map((app) => (
             <li key={app.id}>
               <div>
-                <strong>Name:</strong> {app.name}
+                <strong>Email:</strong> {app.email}
               </div>
               <div>
-                <strong>What building:</strong> {app.what_building}
+                <strong>LinkedIn:</strong> {app.linkedin}
               </div>
               <div>
-                <strong>Why cofounder:</strong> {app.why_cofounder}
+                <strong>STEM background:</strong> {app.stem_background}
               </div>
               <div>
                 <strong>Created:</strong> {new Date(app.created_at).toLocaleString()}

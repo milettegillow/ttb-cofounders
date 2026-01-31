@@ -11,7 +11,7 @@
 body {
   min-height: 100vh;
   color: var(--ink);
-  background: linear-gradient(135deg, var(--bg0) 0%, var(--bg1) 100%);
+  background: linear-gradient(180deg, #2a001f 0%, #140013 45%, #050006 100%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: var(--font-geist-sans, system-ui, -apple-system, sans-serif);
@@ -21,6 +21,21 @@ body {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
+  padding-top: 48px;
+}
+
+.ttb-shell {
+  padding: 48px 20px;
+}
+
+.ttb-panel {
+  max-width: 860px;
+  margin: 0px auto 64px;
+  padding: 28px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(8px);
 }
 
 .ttb-card {
@@ -116,21 +131,24 @@ nav a:first-child {
 /* Form inputs */
 input[type="text"],
 input[type="email"],
+input[type="url"],
 input[type="number"],
 textarea,
 select {
   background: var(--bg0);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 12px;
+  border-radius: 8px;
+  padding: 12px 16px;
   color: var(--ink);
   font-size: 14px;
   width: 100%;
   box-sizing: border-box;
+  min-height: 44px;
 }
 
 input[type="text"]:focus,
 input[type="email"]:focus,
+input[type="url"]:focus,
 input[type="number"]:focus,
 textarea:focus,
 select:focus {
@@ -139,9 +157,83 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(92, 225, 230, 0.2);
 }
 
+/* Reusable form input classes */
+.ttb-input {
+  width: 100%;
+  height: 44px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--ink);
+  font-size: 14px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ttb-input:focus {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 2px rgba(239, 31, 159, 0.2);
+}
+
+.ttb-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ttb-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--ink);
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ttb-textarea:focus {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 2px rgba(239, 31, 159, 0.2);
+}
+
+.ttb-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 label {
   display: block;
   margin-bottom: 8px;
   color: var(--muted);
   font-size: 14px;
+}
+
+/* Alert styles */
+.ttb-alert {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--ink);
+}
+
+.ttb-alert-info {
+  border-color: rgba(92, 225, 230, 0.4);
+  background: rgba(92, 225, 230, 0.08);
+  color: var(--teal);
+}
+
+.ttb-info {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(92, 225, 230, 0.4);
+  background: rgba(92, 225, 230, 0.08);
+  color: var(--teal);
 }

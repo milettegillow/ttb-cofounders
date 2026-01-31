@@ -61,9 +61,9 @@ export async function POST(request: NextRequest) {
       .from('applications')
       .insert({
         user_id: userId,
-        name: `Seed User ${i}`,
-        why_cofounder: 'seed',
-        what_building: 'seed',
+        email: email,
+        linkedin: `https://linkedin.com/in/seed-user-${i}`,
+        stem_background: `Seed STEM background for user ${i}`,
         status: 'approved',
         reviewed_at: new Date().toISOString(),
       })

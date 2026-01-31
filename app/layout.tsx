@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Nav from "./Nav";
+import BrandHeader from "./BrandHeader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,9 +29,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <nav>
-          <a href="/apply" className="ttb-link">Apply</a> | <a href="/discover" className="ttb-link">Discover</a> | <a href="/matches" className="ttb-link">Matches</a> | <a href="/profile" className="ttb-link">Profile</a>
-        </nav>
+        <BrandHeader />
+        <Nav />
         <div className="ttb-container">
           {children}
         </div>
