@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/src/lib/supabaseClient'
 
@@ -28,8 +28,12 @@ export default function Discover() {
   const [userProfile, setUserProfile] = useState<any>(null)
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
-  const [swiping, setSwiping] = useState<string | null>(null)
-  const [matchedProfileId, setMatchedProfileId] = useState<string | null>(null)
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [inFlight, setInFlight] = useState(false)
+  const [swipeAnim, setSwipeAnim] = useState<'left' | 'right' | null>(null)
+  const [showMatchToast, setShowMatchToast] = useState(false)
+
+  const currentProfile = profiles[currentIndex]
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -41,6 +45,72 @@ export default function Discover() {
       }
     })
   }, [])
+
+  const doSwipe = useCallback(async (direction: 'like' | 'pass') => {
+    if (!session?.access_token || !currentProfile || inFlight) return
+
+    setInFlight(true)
+    setSwipeAnim(direction === 'pass' ? 'left' : 'right')
+
+    try {
+      const response = await fetch('/api/swipe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ toUserId: currentProfile.user_id, direction }),
+      })
+
+      if (!response.ok) {
+        console.error('Swipe failed')
+        setSwipeAnim(null)
+        setInFlight(false)
+        return
+      }
+
+      const data = await response.json()
+
+      if (data.matched) {
+        setShowMatchToast(true)
+      }
+
+      // Advance to next card after animation
+      setTimeout(() => {
+        setCurrentIndex((i) => i + 1)
+        setSwipeAnim(null)
+        setInFlight(false)
+      }, 300)
+    } catch (error) {
+      console.error('Error swiping:', error)
+      setSwipeAnim(null)
+      setInFlight(false)
+    }
+  }, [session?.access_token, currentProfile, inFlight])
+
+  useEffect(() => {
+    if (inFlight || !currentProfile) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        doSwipe('pass')
+      } else if (e.key === 'ArrowRight') {
+        doSwipe('like')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [inFlight, currentProfile, doSwipe])
+
+  useEffect(() => {
+    if (showMatchToast) {
+      const timer = setTimeout(() => {
+        setShowMatchToast(false)
+      }, 2500)
+      return () => clearTimeout(timer)
+    }
+  }, [showMatchToast])
 
   const checkAccess = async (userId: string) => {
     // Check application status
@@ -146,47 +216,6 @@ export default function Discover() {
     setLoading(false)
   }
 
-  const handleSwipe = async (toUserId: string, direction: 'like' | 'pass') => {
-    if (!session?.access_token) return
-
-    setSwiping(toUserId)
-    setMatchedProfileId(null)
-
-    try {
-      const response = await fetch('/api/swipe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ toUserId, direction }),
-      })
-
-      if (!response.ok) {
-        console.error('Swipe failed')
-        return
-      }
-
-      const data = await response.json()
-
-      if (data.matched) {
-        setMatchedProfileId(toUserId)
-        // Keep the profile visible for a moment to show match message
-        setTimeout(() => {
-          setProfiles((prev) => prev.filter((p) => p.user_id !== toUserId))
-          setMatchedProfileId(null)
-        }, 2000)
-      } else {
-        // Remove profile immediately
-        setProfiles((prev) => prev.filter((p) => p.user_id !== toUserId))
-      }
-    } catch (error) {
-      console.error('Error swiping:', error)
-    } finally {
-      setSwiping(null)
-    }
-  }
-
   if (loading) {
     return <div>Loading...</div>
   }
@@ -218,60 +247,128 @@ export default function Discover() {
     )
   }
 
+  if (profiles.length === 0 || !currentProfile) {
+    return (
+      <div>
+        <h1>Discover</h1>
+        <p>No profiles yet.</p>
+      </div>
+    )
+  }
+
+  const cardStyle: React.CSSProperties = {
+    transition: 'transform 0.3s ease, opacity 0.3s ease',
+    transform: swipeAnim === 'left' ? 'translateX(-100px)' : swipeAnim === 'right' ? 'translateX(100px)' : 'translateX(0)',
+    opacity: swipeAnim ? 0.5 : 1,
+  }
+
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', padding: '20px' }}>
       <h1>Discover</h1>
 
-      {profiles.length === 0 ? (
-        <p>No profiles yet.</p>
-      ) : (
-        <div>
-          {profiles.map((profile) => (
-            <div key={profile.id}>
-              <h2>{profile.display_name}</h2>
-              <p><strong>Role:</strong> {profile.role}</p>
-              {profile.location && (
-                <p><strong>Location:</strong> {profile.location}</p>
-              )}
-              {profile.skills && (
-                <div>
-                  <strong>Skills:</strong>
-                  <p>{profile.skills}</p>
-                </div>
-              )}
-              {profile.bio && (
-                <div>
-                  <strong>Bio:</strong>
-                  <p>{profile.bio}</p>
-                </div>
-              )}
-              {profile.links && (
-                <div>
-                  <strong>Links:</strong>
-                  <p>{profile.links}</p>
-                </div>
-              )}
-              {matchedProfileId === profile.user_id && (
-                <p>It's a match!</p>
-              )}
-              <div>
-                <button
-                  onClick={() => handleSwipe(profile.user_id, 'pass')}
-                  disabled={swiping === profile.user_id}
-                >
-                  {swiping === profile.user_id ? 'Processing...' : 'Pass'}
-                </button>
-                <button
-                  onClick={() => handleSwipe(profile.user_id, 'like')}
-                  disabled={swiping === profile.user_id}
-                >
-                  {swiping === profile.user_id ? 'Processing...' : 'Like'}
-                </button>
-              </div>
-            </div>
-          ))}
+      {showMatchToast && (
+        <div style={{ 
+          position: 'fixed', 
+          top: '20px', 
+          left: '50%', 
+          transform: 'translateX(-50%)', 
+          background: '#4CAF50', 
+          color: 'white', 
+          padding: '15px 20px', 
+          borderRadius: '8px',
+          zIndex: 1000,
+        }}>
+          It's a match! <Link href="/matches" style={{ color: 'white', textDecoration: 'underline' }}>Go to Matches →</Link>
         </div>
       )}
+
+      <div style={{ 
+        width: '100%', 
+        maxWidth: '500px', 
+        margin: '20px 0',
+        padding: '30px',
+        border: '1px solid #ddd',
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+        ...cardStyle,
+      }}>
+        <h2 style={{ fontSize: '32px', marginBottom: '10px' }}>{currentProfile.display_name}</h2>
+        
+        <div style={{ 
+          display: 'inline-block', 
+          background: '#e0e0e0', 
+          padding: '5px 15px', 
+          borderRadius: '20px', 
+          marginBottom: '15px',
+          fontSize: '14px',
+        }}>
+          {currentProfile.role}
+        </div>
+
+        {currentProfile.location && (
+          <p style={{ marginBottom: '15px', color: '#666' }}>📍 {currentProfile.location}</p>
+        )}
+
+        {currentProfile.skills && (
+          <div style={{ marginBottom: '20px' }}>
+            <strong>Skills:</strong>
+            <p style={{ marginTop: '5px' }}>{currentProfile.skills}</p>
+          </div>
+        )}
+
+        {currentProfile.bio && (
+          <div style={{ marginBottom: '20px' }}>
+            <strong>Bio:</strong>
+            <p style={{ marginTop: '5px' }}>{currentProfile.bio}</p>
+          </div>
+        )}
+
+        {currentProfile.links && (
+          <div style={{ marginBottom: '20px' }}>
+            <strong>Links:</strong>
+            <p style={{ marginTop: '5px' }}>{currentProfile.links}</p>
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
+        <button
+          onClick={() => doSwipe('pass')}
+          disabled={inFlight}
+          style={{
+            padding: '15px 40px',
+            fontSize: '18px',
+            background: '#f44336',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: inFlight ? 'not-allowed' : 'pointer',
+            opacity: inFlight ? 0.6 : 1,
+          }}
+        >
+          {inFlight ? 'Processing...' : 'Pass'}
+        </button>
+        <button
+          onClick={() => doSwipe('like')}
+          disabled={inFlight}
+          style={{
+            padding: '15px 40px',
+            fontSize: '18px',
+            background: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: inFlight ? 'not-allowed' : 'pointer',
+            opacity: inFlight ? 0.6 : 1,
+          }}
+        >
+          {inFlight ? 'Processing...' : 'Like'}
+        </button>
+      </div>
+
+      <p style={{ marginTop: '20px', color: '#999', fontSize: '14px' }}>
+        Use ← → arrow keys to swipe
+      </p>
     </div>
   )
 }

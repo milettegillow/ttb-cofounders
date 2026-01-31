@@ -144,65 +144,169 @@ export default function Matches() {
   }
 
   return (
-    <div>
-      <h1>Matches</h1>
+    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+      <h1 style={{ marginBottom: '30px' }}>Matches</h1>
 
       {matches.length === 0 ? (
-        <p>No matches yet. Keep swiping!</p>
+        <div style={{
+          background: '#1a1a1a',
+          border: '1px solid #333',
+          borderRadius: '12px',
+          padding: '40px',
+          textAlign: 'center',
+          color: '#fff',
+        }}>
+          <h2 style={{ marginBottom: '10px', fontSize: '24px' }}>No matches yet</h2>
+          <p style={{ color: '#999', fontSize: '16px' }}>Head to Discover and start swiping.</p>
+        </div>
       ) : (
-        <div>
-          {matches.map((item) => (
-            <div key={item.match.id}>
-              <h2>{item.profile.display_name}</h2>
-              <p><strong>Role:</strong> {item.profile.role}</p>
-              {item.profile.location && (
-                <p><strong>Location:</strong> {item.profile.location}</p>
-              )}
-              {item.profile.skills && (
-                <div>
-                  <strong>Skills:</strong>
-                  <p>{item.profile.skills}</p>
-                </div>
-              )}
-              {item.profile.bio && (
-                <div>
-                  <strong>Bio:</strong>
-                  <p>{item.profile.bio}</p>
-                </div>
-              )}
-              {item.profile.links && (
-                <div>
-                  <strong>Links:</strong>
-                  <p>{item.profile.links}</p>
-                </div>
-              )}
-              {(() => {
-                const otherUserId = item.profile.user_id
-                const contact = contactsByUserId[otherUserId]
-                const whatsapp = contact?.whatsapp
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: '20px',
+        }}>
+          {matches.map((item) => {
+            const otherUserId = item.profile.user_id
+            const contact = contactsByUserId[otherUserId]
+            const whatsapp = contact?.whatsapp
+            const digitsOnly = whatsapp?.replace(/\D/g, '') || ''
 
-                if (whatsapp) {
-                  const digitsOnly = whatsapp.replace(/\D/g, '')
-                  return (
+            return (
+              <div
+                key={item.match.id}
+                style={{
+                  background: '#1a1a1a',
+                  border: '1px solid #333',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  color: '#fff',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                }}
+              >
+                {/* Header */}
+                <div style={{ marginBottom: '16px', borderBottom: '1px solid #333', paddingBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
+                      {item.profile.display_name}
+                    </h2>
+                    <span style={{
+                      background: '#333',
+                      padding: '4px 12px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      color: '#ccc',
+                    }}>
+                      {item.profile.role}
+                    </span>
+                  </div>
+                  {item.profile.location && (
+                    <p style={{ margin: 0, color: '#999', fontSize: '14px' }}>
+                      📍 {item.profile.location}
+                    </p>
+                  )}
+                </div>
+
+                {/* Skills */}
+                {item.profile.skills && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{
+                      margin: '0 0 8px 0',
+                      fontSize: '12px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      color: '#999',
+                      fontWeight: '500',
+                    }}>
+                      Skills
+                    </h3>
+                    <p style={{ margin: 0, color: '#ccc', fontSize: '14px', lineHeight: '1.5' }}>
+                      {item.profile.skills}
+                    </p>
+                  </div>
+                )}
+
+                {/* Bio */}
+                {item.profile.bio && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{
+                      margin: '0 0 8px 0',
+                      fontSize: '12px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      color: '#999',
+                      fontWeight: '500',
+                    }}>
+                      Bio
+                    </h3>
+                    <p style={{ margin: 0, color: '#ccc', fontSize: '14px', lineHeight: '1.5' }}>
+                      {item.profile.bio}
+                    </p>
+                  </div>
+                )}
+
+                {/* Links */}
+                {item.profile.links && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{
+                      margin: '0 0 8px 0',
+                      fontSize: '12px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      color: '#999',
+                      fontWeight: '500',
+                    }}>
+                      Links
+                    </h3>
+                    <p style={{ margin: 0, color: '#ccc', fontSize: '14px', lineHeight: '1.5' }}>
+                      {item.profile.links}
+                    </p>
+                  </div>
+                )}
+
+                {/* Contact Section */}
+                <div style={{
+                  marginTop: 'auto',
+                  paddingTop: '20px',
+                  borderTop: '1px solid #333',
+                }}>
+                  {whatsapp ? (
                     <div>
-                      <p><strong>WhatsApp:</strong> {whatsapp}</p>
+                      <p style={{ margin: '0 0 12px 0', color: '#999', fontSize: '14px' }}>
+                        <strong style={{ color: '#fff' }}>WhatsApp:</strong> {whatsapp}
+                      </p>
                       {digitsOnly ? (
                         <a
                           href={`https://wa.me/${digitsOnly}`}
                           target="_blank"
                           rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-block',
+                            width: '100%',
+                            textAlign: 'center',
+                            background: '#25D366',
+                            color: '#fff',
+                            padding: '12px 20px',
+                            borderRadius: '8px',
+                            textDecoration: 'none',
+                            fontWeight: '500',
+                            fontSize: '14px',
+                          }}
                         >
-                          <button>Message on WhatsApp</button>
+                          Message on WhatsApp
                         </a>
                       ) : null}
                     </div>
-                  )
-                } else {
-                  return <p>WhatsApp not shared yet.</p>
-                }
-              })()}
-            </div>
-          ))}
+                  ) : (
+                    <p style={{ margin: 0, color: '#666', fontSize: '14px', fontStyle: 'italic' }}>
+                      WhatsApp not shared yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
