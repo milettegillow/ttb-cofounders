@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/apply?error=missing_code', request.url))
   }
 
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
