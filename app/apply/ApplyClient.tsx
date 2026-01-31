@@ -114,32 +114,41 @@ export default function ApplyClient() {
     setSubmitting(false)
   }
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/apply'
+  }
+
   return (
     <div>
       <h1>Apply</h1>
-      <p>You'll receive a magic link to sign in.</p>
 
-      {session?.user?.email && (
-        <p>Signed in as {session.user.email}</p>
+      {session ? (
+        <>
+          <p>Signed in as {session.user.email}</p>
+          <button onClick={handleSignOut}>Sign out</button>
+        </>
+      ) : (
+        <>
+          <p>You'll receive a magic link to sign in.</p>
+          {message && (
+            <p>{message}</p>
+          )}
+          <form onSubmit={handleSubmit}>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              required
+              disabled={loading}
+            />
+            <button type="submit" disabled={loading}>
+              {loading ? 'Sending...' : 'Send magic link'}
+            </button>
+          </form>
+        </>
       )}
-
-      {message && (
-        <p>{message}</p>
-      )}
-
-      <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
-          required
-          disabled={loading}
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Sending...' : 'Send magic link'}
-        </button>
-      </form>
 
       {session && !applicationLoading && (
         <>
