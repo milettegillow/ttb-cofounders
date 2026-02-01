@@ -4,7 +4,7 @@ import { requireAdmin, verifyAdmin } from '@/lib/admin/verify'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const authError = await requireAdmin(request)
   if (authError) {
@@ -16,7 +16,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const matchId = params.id
+  const { id: matchId } = await context.params
 
   if (!matchId) {
     return NextResponse.json({ error: 'Match ID required' }, { status: 400 })

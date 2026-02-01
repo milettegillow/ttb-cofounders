@@ -4,7 +4,7 @@ import { requireAdmin, verifyAdmin } from '@/lib/admin/verify'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const authError = await requireAdmin(request)
   if (authError) {
@@ -16,7 +16,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const reportId = params.id
+  const { id: reportId } = await context.params
 
   if (!reportId) {
     return NextResponse.json({ error: 'Report ID required' }, { status: 400 })
