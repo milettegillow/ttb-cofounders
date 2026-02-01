@@ -6,17 +6,16 @@ type Profile = {
   interests_building?: string | null
   linkedin_url?: string | null
   whatsapp_number?: string | null
+  whatsapp_verified?: boolean | null
 }
 
-// Required fields for profile completeness (before WhatsApp verification)
+// Required fields for profile completeness
 export const REQUIRED_FIELDS = [
   'display_name',
-  'linkedin_url',
   'technical_expertise',
   'location_tz', // Location + Timezone combined
   'skills_background',
   'interests_building',
-  'whatsapp_number',
 ] as const
 
 function isFieldPresent(value: string | null | undefined): boolean {
@@ -28,15 +27,21 @@ export function isProfileComplete(profile: Profile | null | undefined): boolean 
     return false
   }
 
-  return REQUIRED_FIELDS.every((field) => {
+  // Check all required fields are present
+  const allFieldsPresent = REQUIRED_FIELDS.every((field) => {
     const value = profile[field]
     return isFieldPresent(value)
   })
+
+  // Also require WhatsApp verification
+  const whatsappVerified = profile.whatsapp_verified === true
+
+  return allFieldsPresent && whatsappVerified
 }
 
 export function missingFields(profile: Profile | null | undefined): string[] {
   if (!profile) {
-    return REQUIRED_FIELDS.map((f) => f.replace(/_/g, ' '))
+    return [...REQUIRED_FIELDS.map((f) => f.replace(/_/g, ' ')), 'WhatsApp Verified']
   }
 
   const missing: string[] = []
@@ -51,6 +56,11 @@ export function missingFields(profile: Profile | null | undefined): string[] {
       missing.push(fieldName)
     }
   })
+
+  // Add WhatsApp verification if not verified
+  if (profile.whatsapp_verified !== true) {
+    missing.push('WhatsApp Verified')
+  }
 
   return missing
 }

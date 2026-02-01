@@ -28,11 +28,6 @@ export default function Nav() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    window.location.href = '/'
-  }
-
   // Only show nav when signed in
   if (loading || !session) {
     return null
@@ -115,24 +110,6 @@ export default function Nav() {
             Profile
           </Link>
         </div>
-
-        {/* Right: Sign out */}
-        <button 
-          onClick={handleSignOut} 
-          style={{ 
-            background: 'none', 
-            border: 'none', 
-            cursor: 'pointer',
-            color: 'var(--ink)',
-            fontSize: '14px',
-            textDecoration: 'none',
-            transition: 'opacity 0.2s ease',
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-        >
-          Sign out
-        </button>
       </nav>
       
       {/* Neon line */}
