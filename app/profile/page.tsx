@@ -7,6 +7,7 @@ import { isProfileComplete, missingFields } from '@/lib/profile/isComplete'
 import { parsePhoneNumberFromString, getCountries, getCountryCallingCode, type CountryCode } from 'libphonenumber-js'
 import countries from 'i18n-iso-countries'
 import enLocale from 'i18n-iso-countries/langs/en.json'
+import { compressImage } from '@/lib/images/compressImage'
 
 // Register English locale for country names
 countries.registerLocale(enLocale)
@@ -36,6 +37,8 @@ type Profile = {
   availability: string | null
   is_complete: boolean
   is_live: boolean
+  photo_path: string | null
+  photo_updated_at: string | null
 }
 
 export default function Profile() {
@@ -59,6 +62,22 @@ export default function Profile() {
   const [whatsappPretty, setWhatsappPretty] = useState<string | null>(null)
   const [whatsappError, setWhatsappError] = useState<string | null>(null)
   const whatsappInputRef = useRef<HTMLInputElement>(null)
+  
+  // Photo state
+  const [photos, setPhotos] = useState<Array<{
+    id: string
+    user_id: string
+    path: string
+    public_url: string
+    is_primary: boolean
+    created_at: string
+  }>>([])
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoSaveMessage, setPhotoSaveMessage] = useState<string | null>(null)
 
   // Build map from calling code to countries (for syncing country when code changes)
   const codeToCountries = useMemo(() => {
@@ -200,6 +219,7 @@ export default function Profile() {
     setWhatsAppCountry(next)
     const newCode = getCountryCallingCode(next)
     setCallingCode(newCode)
+    setIsDirty(true)
     // Re-validate with new country
     if (whatsappNational) {
       validateWhatsApp(whatsappNational, next, newCode)
@@ -252,12 +272,16 @@ export default function Profile() {
       // Refresh saved profile to get updated WhatsApp number
       const { data: refreshedProfile } = await supabase
         .from('profiles')
-        .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live')
+        .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at')
         .eq('user_id', session.user.id)
         .single()
       
       if (refreshedProfile) {
         setSavedProfile(refreshedProfile)
+        // Load photo URL if exists
+        if (refreshedProfile.photo_path) {
+          loadPhotoUrl(refreshedProfile.photo_path)
+        }
       }
 
     } catch (err: any) {
@@ -303,12 +327,16 @@ export default function Profile() {
         // Refresh saved profile
         const { data: refreshedProfile } = await supabase
           .from('profiles')
-          .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live')
+          .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at')
           .eq('user_id', session.user.id)
           .single()
         
         if (refreshedProfile) {
           setSavedProfile(refreshedProfile)
+          // Load photo URL if exists
+          if (refreshedProfile.photo_path) {
+            loadPhotoUrl(refreshedProfile.photo_path)
+          }
         }
       } else {
         setMessage(responseData.message || 'Code verification failed. Please try again.')
@@ -353,6 +381,15 @@ export default function Profile() {
     setIsDirty(isFormDirty)
   }, [formData, savedProfile])
 
+  // Cleanup object URLs
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl)
+      }
+    }
+  }, [photoPreviewUrl])
+
   useEffect(() => {
     // Initialize calling code from default country
     setCallingCode(getCountryCallingCode('GB'))
@@ -389,6 +426,23 @@ export default function Profile() {
 
     setApplication(data)
     fetchProfile(userId)
+    fetchPhotos(userId)
+  }
+  
+  const fetchPhotos = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profile_photos')
+      .select('*')
+      .eq('user_id', userId)
+      .order('is_primary', { ascending: false })
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching photos:', error)
+      return
+    }
+
+    setPhotos(data || [])
   }
 
   const fetchProfile = async (userId: string) => {
@@ -396,7 +450,7 @@ export default function Profile() {
       // Fetch profile - select only existing columns
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live')
+        .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at')
         .eq('user_id', userId)
         .limit(1)
         .single()
@@ -460,6 +514,13 @@ export default function Profile() {
           whatsapp_number: '', // Not used anymore, kept for backward compatibility
         })
         setIsDirty(false) // Reset dirty state after loading
+        
+        // Load photo URL if photo_path exists
+        if (data.photo_path) {
+          loadPhotoUrl(data.photo_path)
+        } else {
+          setPhotoUrl(null)
+        }
       }
     } catch (err: any) {
       setMessage(`Error loading profile: ${err.message || 'Unknown error'}`)
@@ -513,7 +574,7 @@ export default function Profile() {
     const { data, error } = await supabase
       .from('profiles')
       .upsert(payload, { onConflict: 'user_id' })
-      .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live')
+      .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at')
       .single()
 
     if (error) {
@@ -555,7 +616,7 @@ export default function Profile() {
       .from('profiles')
       .update({ is_live: next, updated_at: new Date().toISOString() })
       .eq('id', savedProfile.id)
-      .select()
+      .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at')
       .single()
 
     if (error) {
@@ -566,6 +627,353 @@ export default function Profile() {
     }
 
     setSavingVisibility(false)
+  }
+
+  // Photo file selection handler - uploads immediately
+  const handlePhotoSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !session?.user?.id) {
+      console.log('No file selected or no session')
+      return
+    }
+
+    console.log('Photo selected:', { name: file.name, size: file.size, type: file.type })
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      const errorMsg = 'Please select an image file.'
+      console.error('Invalid file type:', file.type)
+      setMessage(errorMsg)
+      return
+    }
+
+    setUploadingPhoto(true)
+    setMessage(null)
+    setPhotoSaveMessage(null)
+
+    try {
+      // Compress image
+      console.log('Compressing image...')
+      const compressed = await compressImage(file, {
+        maxWidth: 1024,
+        maxHeight: 1024,
+        quality: 0.8,
+        format: 'webp',
+      })
+      
+      console.log('Compression complete:', {
+        originalSize: compressed.originalSize,
+        compressedSize: compressed.compressedSize,
+        reduction: `${Math.round((1 - compressed.compressedSize / compressed.originalSize) * 100)}%`
+      })
+
+      // Determine file extension
+      const fileExt = compressed.blob.type === 'image/webp' ? 'webp' : 'jpg'
+      const photoPath = `${session.user.id}/avatar.${fileExt}`
+
+      // Upload to Supabase Storage
+      console.log('Uploading to storage:', photoPath)
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(photoPath, compressed.blob, {
+          upsert: true,
+          contentType: compressed.blob.type,
+        })
+
+      if (uploadError) {
+        console.error('Upload failed:', uploadError)
+        setMessage(`Upload failed: ${uploadError.message}`)
+        setUploadingPhoto(false)
+        return
+      }
+
+      console.log('Upload successful:', uploadData)
+
+      // Update profile with photo_path
+      console.log('Updating profile with photo_path:', photoPath)
+      const { data: profileData, error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          photo_path: photoPath,
+          photo_updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', session.user.id)
+        .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at')
+        .single()
+
+      if (updateError) {
+        console.error('Profile update failed:', updateError)
+        setMessage(`Failed to save photo: ${updateError.message}`)
+        // Try to clean up uploaded file
+        await supabase.storage.from('profile-photos').remove([photoPath])
+        setUploadingPhoto(false)
+        return
+      }
+
+      console.log('Profile updated successfully:', profileData)
+
+      // Update saved profile state
+      setSavedProfile(profileData)
+      
+      // Load photo URL
+      await loadPhotoUrl(photoPath)
+
+      // Show success message
+      setPhotoSaveMessage('Saved ✓')
+      setTimeout(() => setPhotoSaveMessage(null), 3000)
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+
+      // Clean up preview URL
+      if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl)
+        setPhotoPreviewUrl(null)
+      }
+    } catch (error: any) {
+      console.error('Photo upload failed', error)
+      setMessage(`Error: ${error.message || 'Failed to upload photo'}`)
+    }
+
+    setUploadingPhoto(false)
+  }
+
+  // Load photo URL from storage (handles both public and private buckets)
+  const loadPhotoUrl = async (photoPath: string | null) => {
+    if (!photoPath) {
+      setPhotoUrl(null)
+      return
+    }
+
+    try {
+      // Try public URL first (works if bucket is public)
+      const { data: publicUrlData } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(photoPath)
+
+      // Test if public URL works
+      const testPublicUrl = async (): Promise<boolean> => {
+        return new Promise((resolve) => {
+          const testImg = new Image()
+          testImg.onload = () => resolve(true)
+          testImg.onerror = () => resolve(false)
+          testImg.src = publicUrlData.publicUrl
+          // Timeout after 3 seconds
+          setTimeout(() => resolve(false), 3000)
+        })
+      }
+
+      const isPublic = await testPublicUrl()
+
+      if (isPublic) {
+        console.log('Using public URL for photo')
+        setPhotoUrl(publicUrlData.publicUrl)
+      } else {
+        // If public URL fails, create signed URL (bucket is private)
+        console.log('Public URL failed, creating signed URL')
+        const { data: signedUrlData, error: signedError } = await supabase.storage
+          .from('profile-photos')
+          .createSignedUrl(photoPath, 3600) // 60 minutes
+
+        if (signedError) {
+          console.error('Failed to create signed URL:', signedError)
+          setPhotoUrl(null)
+        } else {
+          console.log('Using signed URL for photo')
+          setPhotoUrl(signedUrlData.signedUrl)
+        }
+      }
+    } catch (error: any) {
+      console.error('Error loading photo URL:', error)
+      setPhotoUrl(null)
+    }
+  }
+
+  // Photo upload handler
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !session?.user?.id) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setMessage('Please select an image file.')
+      return
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage('Image must be 5MB or smaller.')
+      return
+    }
+
+    setUploadingPhoto(true)
+    setMessage(null)
+
+    try {
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop() || 'jpg'
+      const fileName = `${session.user.id}/${crypto.randomUUID()}.${fileExt}`
+      const path = fileName
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(path, file, {
+          upsert: false,
+        })
+
+      if (uploadError) {
+        setMessage(`Upload failed: ${uploadError.message}`)
+        setUploadingPhoto(false)
+        return
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(path)
+
+      const publicUrl = urlData.publicUrl
+
+      // Check if user has any primary photo
+      const hasPrimary = photos.some(p => p.is_primary)
+      const isPrimary = !hasPrimary
+
+      // If setting as primary, first unset all other primary photos
+      if (isPrimary) {
+        await supabase
+          .from('profile_photos')
+          .update({ is_primary: false })
+          .eq('user_id', session.user.id)
+          .eq('is_primary', true)
+      }
+
+      // Insert photo metadata
+      const { data: photoData, error: insertError } = await supabase
+        .from('profile_photos')
+        .insert({
+          user_id: session.user.id,
+          path,
+          public_url: publicUrl,
+          is_primary: isPrimary,
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        setMessage(`Failed to save photo metadata: ${insertError.message}`)
+        // Try to clean up uploaded file
+        await supabase.storage.from('profile-photos').remove([path])
+        setUploadingPhoto(false)
+        return
+      }
+
+      setMessage(isPrimary ? 'Photo uploaded and set as primary!' : 'Photo uploaded!')
+      
+      // Refresh photos list
+      await fetchPhotos(session.user.id)
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } catch (error: any) {
+      setMessage(`Error: ${error.message || 'Failed to upload photo'}`)
+    }
+
+    setUploadingPhoto(false)
+  }
+
+  // Remove photo handler
+  const handleRemovePhoto = async (photoId: string, path: string, isPrimary: boolean) => {
+    if (!session?.user?.id) return
+
+    if (!confirm('Are you sure you want to remove this photo?')) {
+      return
+    }
+
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('profile-photos')
+        .remove([path])
+
+      if (storageError) {
+        setMessage(`Failed to delete photo from storage: ${storageError.message}`)
+        return
+      }
+
+      // Delete from database
+      const { error: deleteError } = await supabase
+        .from('profile_photos')
+        .delete()
+        .eq('id', photoId)
+        .eq('user_id', session.user.id)
+
+      if (deleteError) {
+        setMessage(`Failed to delete photo metadata: ${deleteError.message}`)
+        return
+      }
+
+      // If removed photo was primary and there are remaining photos, set newest as primary
+      if (isPrimary) {
+        const remainingPhotos = photos.filter(p => p.id !== photoId)
+        if (remainingPhotos.length > 0) {
+          // Find newest photo
+          const newest = remainingPhotos.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          )[0]
+
+          await supabase
+            .from('profile_photos')
+            .update({ is_primary: true })
+            .eq('id', newest.id)
+            .eq('user_id', session.user.id)
+        }
+      }
+
+      setMessage('Photo removed!')
+      
+      // Refresh photos list
+      await fetchPhotos(session.user.id)
+    } catch (error: any) {
+      setMessage(`Error: ${error.message || 'Failed to remove photo'}`)
+    }
+  }
+
+  // Make primary handler
+  const handleMakePrimary = async (photoId: string) => {
+    if (!session?.user?.id) return
+
+    try {
+      // First, unset all primary photos
+      await supabase
+        .from('profile_photos')
+        .update({ is_primary: false })
+        .eq('user_id', session.user.id)
+        .eq('is_primary', true)
+
+      // Then set selected photo as primary
+      const { error } = await supabase
+        .from('profile_photos')
+        .update({ is_primary: true })
+        .eq('id', photoId)
+        .eq('user_id', session.user.id)
+
+      if (error) {
+        setMessage(`Failed to set primary photo: ${error.message}`)
+        return
+      }
+
+      setMessage('Primary photo updated!')
+      
+      // Refresh photos list
+      await fetchPhotos(session.user.id)
+    } catch (error: any) {
+      setMessage(`Error: ${error.message || 'Failed to update primary photo'}`)
+    }
   }
 
   if (loading) {
@@ -613,51 +1021,188 @@ export default function Profile() {
   return (
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
       <div className="ttb-panel">
-        {/* Header row: Signed in as + Sign out */}
+        {/* Photos section - at the top */}
         <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+          marginBottom: '32px',
+          display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          marginBottom: '24px',
-          paddingBottom: '16px',
-          borderBottom: '1px solid var(--border)'
+          gap: '12px'
         }}>
-          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
-            Signed in as {session.user.email}
-          </p>
-          <button 
-            onClick={async () => {
-              await supabase.auth.signOut()
-              window.location.href = '/'
-            }}
+          {/* Photo circle placeholder/display */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
             style={{
-              background: 'none',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              padding: '6px 12px',
+              width: '120px',
+              height: '120px',
+              borderRadius: '50%',
+              background: photos.find(p => p.is_primary) 
+                ? 'transparent' 
+                : 'rgba(255, 255, 255, 0.1)',
+              border: photos.find(p => p.is_primary)
+                ? 'none'
+                : '2px dashed rgba(255, 255, 255, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               cursor: 'pointer',
-              color: 'var(--ink)',
-              fontSize: '14px',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--pink)'
-              e.currentTarget.style.opacity = '0.9'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border)'
-              e.currentTarget.style.opacity = '1'
+              overflow: 'hidden',
+              position: 'relative',
             }}
           >
-            Sign out
-          </button>
+            {photoPreviewUrl ? (
+              <img
+                src={photoPreviewUrl}
+                alt="Photo preview"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            ) : photoUrl ? (
+              <img
+                src={photoUrl}
+                alt="Profile photo"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            ) : photos.find(p => p.is_primary) ? (
+              <img
+                src={photos.find(p => p.is_primary)!.public_url}
+                alt="Profile photo"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            ) : (
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="rgba(255, 255, 255, 0.4)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            )}
+          </div>
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoSelected}
+            style={{ display: 'none' }}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="ttb-btn ttb-btn-secondary"
+              style={{
+                fontSize: '14px',
+                padding: '8px 16px',
+              }}
+            >
+              {uploadingPhoto ? 'Uploading...' : 'Upload photo'}
+            </button>
+            {photoSaveMessage && (
+              <span style={{ 
+                fontSize: '12px', 
+                color: 'var(--teal)',
+                fontWeight: '500'
+              }}>
+                {photoSaveMessage}
+              </span>
+            )}
+          </div>
+
+          {/* Photo thumbnails grid - show all photos except primary (which is in circle) */}
+          {photos.length > 1 && (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+              gap: '12px',
+              marginTop: '20px',
+              width: '100%',
+              maxWidth: '600px'
+            }}>
+              {photos.filter(p => !p.is_primary).map((photo) => (
+                <div
+                  key={photo.id}
+                  style={{
+                    position: 'relative',
+                    padding: '8px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <img
+                    src={photo.public_url}
+                    alt={`Photo ${photo.id}`}
+                    style={{
+                      width: '100%',
+                      height: '100px',
+                      objectFit: 'cover',
+                      borderRadius: '4px',
+                    }}
+                  />
+                  <div style={{ 
+                    marginTop: '8px', 
+                    display: 'flex', 
+                    gap: '8px',
+                    flexDirection: 'column'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => handleMakePrimary(photo.id)}
+                      className="ttb-btn"
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                      }}
+                    >
+                      Make primary
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePhoto(photo.id, photo.path, photo.is_primary)}
+                      className="ttb-btn"
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        background: 'rgba(244, 114, 182, 0.2)',
+                        color: '#f472b6',
+                        border: '1px solid #f472b6',
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <h1 style={{ marginTop: '0', marginBottom: '16px' }}>Profile</h1>
 
         {/* Real-time missing fields banner */}
         <div style={{ marginBottom: '24px' }}>
-          {draftMissing.length === 0 ? (
+          {isDirty && draftMissing.length === 0 && (
             <div style={{ 
               padding: '12px 16px',
               background: 'rgba(92, 225, 230, 0.1)',
@@ -668,7 +1213,8 @@ export default function Profile() {
             }}>
               ✅ Looks good — save to apply changes
             </div>
-          ) : (
+          )}
+          {draftMissing.length > 0 && (
             <div style={{ 
               padding: '12px 16px',
               background: 'rgba(255, 193, 7, 0.1)',
@@ -715,9 +1261,10 @@ export default function Profile() {
             <input
               type="text"
               value={formData.display_name}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, display_name: e.target.value })
-              }
+                setIsDirty(true)
+              }}
               required
               disabled={savingProfile}
               style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'rgba(0, 0, 0, 0.3)', color: 'var(--ink)' }}
@@ -731,9 +1278,10 @@ export default function Profile() {
             <input
               type="url"
               value={formData.linkedin_url}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, linkedin_url: e.target.value })
-              }
+                setIsDirty(true)
+              }}
               required
               disabled={savingProfile}
               placeholder="https://linkedin.com/in/yourprofile"
@@ -748,9 +1296,10 @@ export default function Profile() {
             <input
               type="text"
               value={formData.domain_expertise}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, domain_expertise: e.target.value })
-              }
+                setIsDirty(true)
+              }}
               disabled={savingProfile}
               placeholder="e.g., Healthcare, Fintech, EdTech"
               style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'rgba(0, 0, 0, 0.3)', color: 'var(--ink)' }}
@@ -764,9 +1313,10 @@ export default function Profile() {
             <input
               type="text"
               value={formData.technical_expertise}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, technical_expertise: e.target.value })
-              }
+                setIsDirty(true)
+              }}
               required
               disabled={savingProfile}
               placeholder="e.g., Full-stack, ML/AI, Mobile, DevOps"
@@ -781,9 +1331,10 @@ export default function Profile() {
             <input
               type="text"
               value={formData.location_tz}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, location_tz: e.target.value })
-              }
+                setIsDirty(true)
+              }}
               required
               disabled={savingProfile}
               placeholder="e.g., London, GMT or San Francisco, PT"
@@ -798,9 +1349,10 @@ export default function Profile() {
             <input
               type="text"
               value={formData.availability}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, availability: e.target.value })
-              }
+                setIsDirty(true)
+              }}
               required
               disabled={savingProfile}
               placeholder="e.g., Working full-time on my startup, Student with <1y left, Currently in a job I have to quit"
@@ -814,9 +1366,10 @@ export default function Profile() {
             </label>
             <textarea
               value={formData.skills_background}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, skills_background: e.target.value })
-              }
+                setIsDirty(true)
+              }}
               required
               disabled={savingProfile}
               rows={4}
@@ -832,9 +1385,10 @@ export default function Profile() {
             </label>
             <textarea
               value={formData.interests_building}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, interests_building: e.target.value })
-              }
+                setIsDirty(true)
+              }}
               required
               disabled={savingProfile}
               rows={4}
@@ -850,9 +1404,10 @@ export default function Profile() {
             </label>
             <textarea
               value={formData.links}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, links: e.target.value })
-              }
+                setIsDirty(true)
+              }}
               disabled={savingProfile}
               rows={3}
               placeholder="GitHub, portfolio, or other relevant links"
@@ -894,6 +1449,7 @@ export default function Profile() {
                     onChange={(e) => {
                       const digits = e.target.value.replace(/[^\d]/g, "")
                       setCallingCode(digits)
+                      setIsDirty(true)
                       // Attempt to auto-set country from calling code
                       const countries = codeToCountries[digits] ?? []
                       if (countries.length === 1) {
@@ -1044,7 +1600,7 @@ export default function Profile() {
             }
 
             .waVerified {
-              color: #38bdf8; /* sky-ish */
+              color: var(--teal);
               font-size: 14px;
               white-space: nowrap;
             }
@@ -1239,6 +1795,46 @@ export default function Profile() {
               </p>
             )}
           </div>
+        </div>
+
+        {/* Header row: Signed in as + Sign out - at the bottom */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginTop: '48px',
+          paddingTop: '24px',
+          borderTop: '1px solid var(--border)'
+        }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
+            Signed in as {session.user.email}
+          </p>
+          <button 
+            onClick={async () => {
+              await supabase.auth.signOut()
+              window.location.href = '/'
+            }}
+            style={{
+              background: 'none',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              color: 'var(--ink)',
+              fontSize: '14px',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--pink)'
+              e.currentTarget.style.opacity = '0.9'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border)'
+              e.currentTarget.style.opacity = '1'
+            }}
+          >
+            Sign out
+          </button>
         </div>
       </div>
     </div>
