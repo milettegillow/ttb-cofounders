@@ -536,7 +536,7 @@ export default function Profile() {
     setSavingProfile(true)
     setMessage(null)
 
-    // Build profile object to check completeness (use form data + saved verification status)
+    // Build profile object to check completeness (use form data + saved verification status + photo)
     const profileForCompleteness = {
       display_name: formData.display_name,
       technical_expertise: formData.technical_expertise,
@@ -544,12 +544,19 @@ export default function Profile() {
       skills_background: formData.skills_background,
       interests_building: formData.interests_building,
       whatsapp_verified: savedProfile?.whatsapp_verified || false,
+      photo_path: savedProfile?.photo_path || null, // Check saved photo_path
     }
 
     // Safety: never allow live when incomplete
+    // If profile becomes incomplete, automatically set is_live to false
     const complete = isProfileComplete(profileForCompleteness)
     const currentIsLive = savedProfile?.is_live || false
     const shouldBeLive = complete && currentIsLive
+    
+    // If profile was live but is now incomplete, show a message
+    if (currentIsLive && !complete) {
+      setMessage('Profile is now incomplete. It has been automatically set to Hidden.')
+    }
 
     // Upsert payload - always use user_id
     const payload = {
@@ -976,6 +983,75 @@ export default function Profile() {
     }
   }
 
+  // Remove profile photo handler (removes photo_path from profiles table)
+  const handleRemoveProfilePhoto = async () => {
+    if (!session?.user?.id || !savedProfile?.photo_path) {
+      return
+    }
+
+    if (!confirm('Are you sure you want to remove your photo? This will make your profile incomplete and it will be automatically set to Hidden if it\'s currently Discoverable.')) {
+      return
+    }
+
+    try {
+      console.log('Removing photo:', savedProfile.photo_path)
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('profile-photos')
+        .remove([savedProfile.photo_path])
+
+      if (storageError) {
+        console.error('Failed to delete photo from storage:', storageError)
+        setMessage(`Failed to delete photo: ${storageError.message}`)
+        return
+      }
+
+      console.log('Photo deleted from storage')
+
+      // Clear photo_path in database
+      const { data: updatedProfile, error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          photo_path: null,
+          photo_updated_at: null,
+          // If profile was discoverable and is now incomplete, set to hidden
+          is_live: false, // Always set to false when removing photo (photo is required)
+        })
+        .eq('user_id', session.user.id)
+        .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at')
+        .single()
+
+      if (updateError) {
+        console.error('Failed to update profile:', updateError)
+        setMessage(`Failed to remove photo: ${updateError.message}`)
+        return
+      }
+
+      console.log('Profile updated, photo removed')
+
+      // Update saved profile state
+      setSavedProfile(updatedProfile)
+      
+      // Clear photo URL
+      setPhotoUrl(null)
+      if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl)
+        setPhotoPreviewUrl(null)
+      }
+
+      // Check if profile was discoverable and show message
+      if (savedProfile.is_live) {
+        setMessage('Photo removed. Your profile has been automatically set to Hidden because it is now incomplete.')
+      } else {
+        setMessage('Photo removed successfully.')
+      }
+    } catch (error: any) {
+      console.error('Error removing photo:', error)
+      setMessage(`Error: ${error.message || 'Failed to remove photo'}`)
+    }
+  }
+
   if (loading) {
     return <div>Loading...</div>
   }
@@ -1012,6 +1088,7 @@ export default function Profile() {
     linkedin_url: formData.linkedin_url?.trim() || null,
     whatsapp_number: whatsappE164, // Use validated E.164 format
     whatsapp_verified: savedProfile?.whatsapp_verified || false,
+    photo_path: savedProfile?.photo_path || null, // Include photo in completeness check
   }
 
   // Compute missing fields for draft and saved
@@ -1023,7 +1100,8 @@ export default function Profile() {
       <div className="ttb-panel">
         {/* Photos section - at the top */}
         <div style={{ 
-          marginBottom: '32px',
+          marginTop: '24px',
+          marginBottom: '16px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -1033,8 +1111,8 @@ export default function Profile() {
           <div
             onClick={() => fileInputRef.current?.click()}
             style={{
-              width: '120px',
-              height: '120px',
+              width: '200px',
+              height: '200px',
               borderRadius: '50%',
               background: photos.find(p => p.is_primary) 
                 ? 'transparent' 
@@ -1048,6 +1126,7 @@ export default function Profile() {
               cursor: 'pointer',
               overflow: 'hidden',
               position: 'relative',
+              marginBottom: '24px',
             }}
           >
             {photoPreviewUrl ? (
@@ -1106,18 +1185,37 @@ export default function Profile() {
             style={{ display: 'none' }}
           />
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              className="ttb-btn ttb-btn-secondary"
-              style={{
-                fontSize: '14px',
-                padding: '8px 16px',
-              }}
-            >
-              {uploadingPhoto ? 'Uploading...' : 'Upload photo'}
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="ttb-btn ttb-btn-secondary"
+                style={{
+                  fontSize: '14px',
+                  padding: '8px 16px',
+                }}
+              >
+                {uploadingPhoto ? 'Uploading...' : 'Upload photo'}
+              </button>
+              {savedProfile?.photo_path && (
+                <button
+                  type="button"
+                  onClick={handleRemoveProfilePhoto}
+                  disabled={uploadingPhoto}
+                  className="ttb-btn"
+                  style={{
+                    fontSize: '14px',
+                    padding: '8px 16px',
+                    background: 'rgba(244, 114, 182, 0.2)',
+                    color: '#f472b6',
+                    border: '1px solid #f472b6',
+                  }}
+                >
+                  Remove photo
+                </button>
+              )}
+            </div>
             {photoSaveMessage && (
               <span style={{ 
                 fontSize: '12px', 

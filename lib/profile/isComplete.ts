@@ -7,6 +7,7 @@ type Profile = {
   linkedin_url?: string | null
   whatsapp_number?: string | null
   whatsapp_verified?: boolean | null
+  photo_path?: string | null
 }
 
 // Required fields for profile completeness
@@ -36,12 +37,15 @@ export function isProfileComplete(profile: Profile | null | undefined): boolean 
   // Also require WhatsApp verification
   const whatsappVerified = profile.whatsapp_verified === true
 
-  return allFieldsPresent && whatsappVerified
+  // Also require photo
+  const hasPhoto = isFieldPresent(profile.photo_path)
+
+  return allFieldsPresent && whatsappVerified && hasPhoto
 }
 
 export function missingFields(profile: Profile | null | undefined): string[] {
   if (!profile) {
-    return [...REQUIRED_FIELDS.map((f) => f.replace(/_/g, ' ')), 'WhatsApp Verified']
+    return [...REQUIRED_FIELDS.map((f) => f.replace(/_/g, ' ')), 'WhatsApp Verified', 'Photo']
   }
 
   const missing: string[] = []
@@ -60,6 +64,11 @@ export function missingFields(profile: Profile | null | undefined): string[] {
   // Add WhatsApp verification if not verified
   if (profile.whatsapp_verified !== true) {
     missing.push('WhatsApp Verified')
+  }
+
+  // Add photo if missing
+  if (!isFieldPresent(profile.photo_path)) {
+    missing.push('Photo')
   }
 
   return missing
