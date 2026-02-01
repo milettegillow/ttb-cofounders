@@ -1,31 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/src/lib/supabaseAdmin'
-
-async function verifyAdmin(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { authorized: false, user: null }
-  }
-
-  const token = authHeader.substring(7)
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
-
-  if (error || !user?.email) {
-    return { authorized: false, user: null }
-  }
-
-  const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim()) || []
-  if (!adminEmails.includes(user.email)) {
-    return { authorized: false, user: null }
-  }
-
-  return { authorized: true, user }
-}
+import { requireAdmin } from '@/lib/admin/verify'
 
 export async function GET(request: NextRequest) {
-  const { authorized } = await verifyAdmin(request)
-  if (!authorized) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+  const authError = await requireAdmin(request)
+  if (authError) {
+    return authError
   }
 
   const { data, error } = await supabaseAdmin

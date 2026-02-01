@@ -560,11 +560,12 @@ type DropdownProps = {
   isOpen: boolean
   onClose: () => void
   onUnmatch: () => void
-  onReport: () => void
+  onReport: (reportedUserId: string) => void
   matchId: string
+  reportedUserId: string
 }
 
-function Dropdown({ isOpen, onClose, onUnmatch, onReport, matchId }: DropdownProps) {
+function Dropdown({ isOpen, onClose, onUnmatch, onReport, matchId, reportedUserId }: DropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -624,7 +625,7 @@ function Dropdown({ isOpen, onClose, onUnmatch, onReport, matchId }: DropdownPro
       </button>
       <button
         onClick={() => {
-          onReport()
+          onReport(reportedUserId)
           onClose()
         }}
         style={{
@@ -1008,10 +1009,40 @@ export default function Matches() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  const handleReport = () => {
-    if (confirm('Report this user? This action cannot be undone.')) {
-      // Stub for now - could create reports table later
-      setToast('Reported')
+  const handleReport = async (reportedUserId: string) => {
+    if (!confirm('Report this user? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reported_user_id: reportedUserId,
+          reason: 'User reported from matches page',
+          details: 'Reported via matches page',
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        setToast(data.error || 'Failed to submit report')
+        setTimeout(() => setToast(null), 3000)
+        return
+      }
+
+      setToast('Report submitted. The match has been removed.')
+      setTimeout(() => setToast(null), 5000)
+
+      // Refresh matches to reflect the unmatch
+      if (session?.user?.id) {
+        fetchMatches(session.user.id)
+      }
+    } catch (err: any) {
+      setToast('Failed to submit report. Please try again.')
       setTimeout(() => setToast(null), 3000)
     }
   }
@@ -1150,8 +1181,12 @@ export default function Matches() {
                       setOpenDropdown(null)
                       handleUnmatchRequest(item.match_id, otherUserId, item.profile.display_name)
                     }}
-                    onReport={handleReport}
+                    onReport={(userId) => {
+                      setOpenDropdown(null)
+                      handleReport(userId)
+                    }}
                     matchId={item.match_id}
+                    reportedUserId={otherUserId}
                   />
                 </div>
 

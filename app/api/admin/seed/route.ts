@@ -1,26 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/src/lib/supabaseAdmin'
-
-async function verifyAdmin(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { authorized: false, user: null }
-  }
-
-  const token = authHeader.substring(7)
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
-
-  if (error || !user?.email) {
-    return { authorized: false, user: null }
-  }
-
-  const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim()) || []
-  if (!adminEmails.includes(user.email)) {
-    return { authorized: false, user: null }
-  }
-
-  return { authorized: true, user }
-}
+import { requireAdmin, verifyAdmin } from '@/lib/admin/verify'
 
 // Generate rich profile data for a given index
 function generateProfileData(index: number) {
@@ -111,10 +91,12 @@ function generateProfileData(index: number) {
 }
 
 export async function POST(request: NextRequest) {
-  const { authorized } = await verifyAdmin(request)
-  if (!authorized) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+  const authError = await requireAdmin(request)
+  if (authError) {
+    return authError
   }
+  
+  const { user } = await verifyAdmin(request)
 
   // Parse query params
   const { searchParams } = new URL(request.url)
