@@ -237,3 +237,28 @@ label {
   background: rgba(92, 225, 230, 0.08);
   color: var(--teal);
 }
+
+/* Matches grid layout */
+.matches-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 600px) {
+  .matches-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .matches-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .matches-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

@@ -39,6 +39,7 @@ type Profile = {
   is_live: boolean
   photo_path: string | null
   photo_updated_at: string | null
+  email?: string | null
 }
 
 export default function Profile() {
@@ -397,6 +398,7 @@ export default function Profile() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         setSession(data.session)
+        console.log('[profile] user id:', data.session.user?.id)
         fetchApplication(data.session.user.id)
       } else {
         setLoading(false)
@@ -454,6 +456,8 @@ export default function Profile() {
         .eq('user_id', userId)
         .limit(1)
         .single()
+
+      console.log('[profile] fetch profile:', { data, error, count: data ? 1 : 0 })
 
       if (error && error.code !== 'PGRST116') {
         setMessage(`Error loading profile: ${error.message}`)
@@ -536,6 +540,31 @@ export default function Profile() {
     setSavingProfile(true)
     setMessage(null)
 
+    // If this is a new profile (savedProfile is null), check pre_applications for linkedin_url and email
+    let preAppLinkedIn: string | null = null
+    let preAppEmail: string | null = null
+    
+    if (!savedProfile && session.user.email) {
+      try {
+        // Look up pre_application by email (case-insensitive)
+        const { data: preApp } = await supabase
+          .from('pre_applications')
+          .select('linkedin, email')
+          .ilike('email', session.user.email)
+          .eq('status', 'approved')
+          .limit(1)
+          .single()
+        
+        if (preApp) {
+          preAppLinkedIn = preApp.linkedin || null
+          preAppEmail = preApp.email || null
+        }
+      } catch (err) {
+        // Ignore errors (pre_application might not exist)
+        console.log('No pre_application found for email:', session.user.email)
+      }
+    }
+
     // Build profile object to check completeness (use form data + saved verification status + photo)
     const profileForCompleteness = {
       display_name: formData.display_name,
@@ -558,8 +587,36 @@ export default function Profile() {
       setMessage('Profile is now incomplete. It has been automatically set to Hidden.')
     }
 
+    // Determine linkedin_url:
+    // 1. Use form data if user has entered it (takes priority)
+    // 2. If form data is empty and profile exists, preserve existing linkedin_url (don't overwrite user edits)
+    // 3. If form data is empty and profile is new, use pre_application linkedin
+    let finalLinkedInUrl = formData.linkedin_url || null
+    if (!finalLinkedInUrl) {
+      if (savedProfile?.linkedin_url) {
+        // Preserve existing linkedin_url if user has already set it
+        finalLinkedInUrl = savedProfile.linkedin_url
+      } else if (preAppLinkedIn) {
+        // Use pre_application linkedin only for new profiles
+        finalLinkedInUrl = preAppLinkedIn
+      }
+    }
+
+    // Determine email:
+    // 1. Use saved profile's email if it exists
+    // 2. Use pre_application email if profile is new
+    // 3. Fall back to session user email
+    let finalEmail: string | null = null
+    if (savedProfile?.email) {
+      finalEmail = savedProfile.email
+    } else if (preAppEmail) {
+      finalEmail = preAppEmail
+    } else if (session.user.email) {
+      finalEmail = session.user.email
+    }
+
     // Upsert payload - always use user_id
-    const payload = {
+    const payload: any = {
       user_id: session.user.id,
       display_name: formData.display_name || null,
       domain_expertise: formData.domain_expertise || null,
@@ -569,7 +626,7 @@ export default function Profile() {
       skills_background: formData.skills_background || null,
       interests_building: formData.interests_building || null,
       links: formData.links || null,
-      linkedin_url: formData.linkedin_url || null,
+      linkedin_url: finalLinkedInUrl,
       // Note: WhatsApp number is saved separately via handleSaveWhatsApp
       // Keep existing whatsapp_number if not explicitly saving it here
       whatsapp_number: savedProfile?.whatsapp_number ?? null,
@@ -578,10 +635,15 @@ export default function Profile() {
       is_live: shouldBeLive,
     }
 
+    // Include email if we have a value (column may or may not exist, but upsert will handle it)
+    if (finalEmail) {
+      payload.email = finalEmail
+    }
+
     const { data, error } = await supabase
       .from('profiles')
       .upsert(payload, { onConflict: 'user_id' })
-      .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at')
+      .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at, email')
       .single()
 
     if (error) {
@@ -623,7 +685,7 @@ export default function Profile() {
       .from('profiles')
       .update({ is_live: next, updated_at: new Date().toISOString() })
       .eq('id', savedProfile.id)
-      .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at')
+      .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at, email')
       .single()
 
     if (error) {

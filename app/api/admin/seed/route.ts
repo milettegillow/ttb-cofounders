@@ -77,12 +77,14 @@ export async function POST(request: NextRequest) {
       .from('profiles')
       .insert({
         user_id: userId,
+        email: email,
         display_name: `Seed User ${i}`,
         technical_expertise: role,
         location_tz: `Seed Location ${i}, GMT`,
         skills_background: `Seed skills for user ${i}`,
         interests_building: `Seed interests for user ${i}`,
         links: `https://example.com/user${i}`,
+        linkedin_url: `https://linkedin.com/in/seed-user-${i}`,
         is_complete: true,
         is_live: true,
         updated_at: new Date().toISOString(),
