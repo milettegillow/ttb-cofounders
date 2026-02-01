@@ -1,46 +1,31 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/src/lib/supabaseClient'
 
 export default function Nav() {
-  const [session, setSession] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const pathname = usePathname()
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setLoading(false)
-    })
-
-    // Subscribe to auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  // Only show nav when signed in
-  if (loading || !session) {
-    return null
-  }
-
   return (
-    <div>
-      <nav style={{
+    <header style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 9999,
+      background: 'rgba(0,0,0,0.5)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+    }}>
+      <div style={{
+        maxWidth: '1100px',
+        margin: '0 auto',
+        padding: '0 24px',
+        height: '64px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '20px 20px 12px',
-        marginBottom: '20px',
+        position: 'relative'
       }}>
         {/* Left: Brand */}
         <div style={{ 
@@ -110,16 +95,17 @@ export default function Nav() {
             Profile
           </Link>
         </div>
-      </nav>
-      
-      {/* Neon line */}
-      <div style={{
-        height: '1px',
-        background: 'linear-gradient(90deg, var(--pink) 0%, var(--teal) 100%)',
-        boxShadow: '0 0 8px rgba(239, 31, 159, 0.5), 0 0 8px rgba(92, 225, 230, 0.5)',
-        width: '100%',
-        marginBottom: '20px',
-      }} />
-    </div>
+      </div>
+
+      <div
+        aria-hidden="true"
+        style={{
+          height: '3px',
+          width: '100%',
+          background: 'var(--teal)',
+          boxShadow: '0 0 18px rgba(92,225,230,0.75)',
+        }}
+      />
+    </header>
   )
 }

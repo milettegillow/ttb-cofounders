@@ -21,7 +21,7 @@ body {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
-  padding-top: 48px;
+  padding-top: 80px; /* 64px for fixed nav + 16px extra spacing */
 }
 
 .ttb-shell {

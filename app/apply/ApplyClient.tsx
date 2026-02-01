@@ -387,45 +387,70 @@ export default function ApplyClient() {
   }
 
   return (
-    <div className="ttb-panel">
-      <h1 style={{ marginBottom: '20px', paddingTop: '0', paddingBottom: '0', marginTop: '0' }}>co-founder matching platform</h1>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', borderBottom: '1px solid var(--border)' }}>
-        <button
-          onClick={() => setActiveTab('apply')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: activeTab === 'apply' ? 'var(--pink)' : 'var(--muted)',
-            fontSize: '16px',
-            padding: '12px 0',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'apply' ? '2px solid var(--pink)' : '2px solid transparent',
-            fontWeight: activeTab === 'apply' ? '600' : '400',
-          }}
-        >
-          Apply
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('signin')
-            setExistingAccountNotice(false) // Clear notice when manually switching to Sign in tab
-          }}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: activeTab === 'signin' ? 'var(--pink)' : 'var(--muted)',
-            fontSize: '16px',
-            padding: '12px 0',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'signin' ? '2px solid var(--pink)' : '2px solid transparent',
-            fontWeight: activeTab === 'signin' ? '600' : '400',
-          }}
-        >
-          Sign in
-        </button>
+    <>
+      {/* Brand label - always show in upper left */}
+      <div style={{
+        position: 'fixed',
+        top: 18,
+        left: 24,
+        zIndex: 50,
+        fontFamily: 'Helvetica, Arial, sans-serif',
+        fontSize: '28px',
+        letterSpacing: '-0.06em',
+        color: 'var(--pink)',
+      }}>
+        the tech bros
       </div>
+
+      <div style={{
+        minHeight: '100vh',
+        paddingTop: 60,
+        paddingLeft: 24,
+        paddingRight: 24,
+      }}>
+        <div style={{
+          maxWidth: 600,
+          margin: '0 auto',
+        }}>
+          <div className="ttb-panel">
+            <h1 style={{ marginBottom: '20px', paddingTop: '0', paddingBottom: '0', marginTop: '0' }}>co-founder matching platform</h1>
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '32px', borderBottom: '1px solid var(--border)' }}>
+              <button
+                onClick={() => setActiveTab('apply')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: activeTab === 'apply' ? 'var(--pink)' : 'var(--muted)',
+                  fontSize: '16px',
+                  padding: '12px 0',
+                  cursor: 'pointer',
+                  borderBottom: activeTab === 'apply' ? '2px solid var(--pink)' : '2px solid transparent',
+                  fontWeight: activeTab === 'apply' ? '600' : '400',
+                }}
+              >
+                Apply
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('signin')
+                  setExistingAccountNotice(false) // Clear notice when manually switching to Sign in tab
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: activeTab === 'signin' ? 'var(--pink)' : 'var(--muted)',
+                  fontSize: '16px',
+                  padding: '12px 0',
+                  cursor: 'pointer',
+                  borderBottom: activeTab === 'signin' ? '2px solid var(--pink)' : '2px solid transparent',
+                  fontWeight: activeTab === 'signin' ? '600' : '400',
+                }}
+              >
+                Sign in
+              </button>
+            </div>
 
       {/* Apply Tab */}
       {activeTab === 'apply' && (
@@ -516,6 +541,7 @@ export default function ApplyClient() {
                   placeholder="Degree / work experience / technical areas..."
                   required
                   disabled={submitting || applySuccess}
+                  style={{ minHeight: '80px' }}
                 />
               </div>
               {submitMessage && <p style={{ marginBottom: '20px', color: 'var(--pink)' }}>{submitMessage}</p>}
@@ -602,6 +628,9 @@ export default function ApplyClient() {
           )}
         </>
       )}
-    </div>
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
