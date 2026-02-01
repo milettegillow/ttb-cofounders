@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .select('user_id, display_name, role, location, is_complete, updated_at')
+    .select('user_id, display_name, technical_expertise, location_tz, is_complete, updated_at')
     .order('updated_at', { ascending: false })
     .limit(200)
 

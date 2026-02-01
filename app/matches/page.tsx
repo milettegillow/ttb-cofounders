@@ -14,11 +14,13 @@ type Match = {
 type Profile = {
   user_id: string
   display_name: string
-  role: string
-  location: string | null
-  skills: string | null
-  bio: string | null
+  domain_expertise: string | null
+  technical_expertise: string | null
+  location_tz: string | null
+  skills_background: string | null
+  interests_building: string | null
   links: string | null
+  linkedin_url: string | null
 }
 
 type MatchWithProfile = {
@@ -72,7 +74,7 @@ export default function Matches() {
     // Fetch profiles for other users
     const { data: profilesData, error: profilesError } = await supabase
       .from('profiles')
-      .select('display_name, role, location, skills, bio, links, user_id')
+      .select('display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, user_id')
       .in('user_id', otherUserIds)
 
     if (profilesError) {
@@ -179,19 +181,21 @@ export default function Matches() {
                     <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
                       {item.profile.display_name}
                     </h2>
-                    <span className="ttb-pill">
-                      {item.profile.role}
-                    </span>
+                    {item.profile.technical_expertise && (
+                      <span className="ttb-pill">
+                        {item.profile.technical_expertise}
+                      </span>
+                    )}
                   </div>
-                  {item.profile.location && (
+                  {item.profile.location_tz && (
                     <p style={{ margin: 0, color: '#999', fontSize: '14px' }}>
-                      📍 {item.profile.location}
+                      📍 {item.profile.location_tz}
                     </p>
                   )}
                 </div>
 
-                {/* Skills */}
-                {item.profile.skills && (
+                {/* Skills & Background */}
+                {item.profile.skills_background && (
                   <div style={{ marginBottom: '20px' }}>
                     <h3 style={{
                       margin: '0 0 8px 0',
@@ -201,16 +205,16 @@ export default function Matches() {
                       color: '#999',
                       fontWeight: '500',
                     }}>
-                      Skills
+                      Skills & Background
                     </h3>
                     <p style={{ margin: 0, color: '#ccc', fontSize: '14px', lineHeight: '1.5' }}>
-                      {item.profile.skills}
+                      {item.profile.skills_background}
                     </p>
                   </div>
                 )}
 
-                {/* Bio */}
-                {item.profile.bio && (
+                {/* Interested in Building */}
+                {item.profile.interests_building && (
                   <div style={{ marginBottom: '20px' }}>
                     <h3 style={{
                       margin: '0 0 8px 0',
@@ -220,10 +224,10 @@ export default function Matches() {
                       color: '#999',
                       fontWeight: '500',
                     }}>
-                      Bio
+                      Interested in Building
                     </h3>
                     <p style={{ margin: 0, color: '#ccc', fontSize: '14px', lineHeight: '1.5' }}>
-                      {item.profile.bio}
+                      {item.profile.interests_building}
                     </p>
                   </div>
                 )}

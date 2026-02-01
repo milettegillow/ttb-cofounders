@@ -78,12 +78,13 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: userId,
         display_name: `Seed User ${i}`,
-        role,
-        location: `Seed Location ${i}`,
-        skills: `Seed skills for user ${i}`,
-        bio: `Seed bio for user ${i}`,
+        technical_expertise: role,
+        location_tz: `Seed Location ${i}, GMT`,
+        skills_background: `Seed skills for user ${i}`,
+        interests_building: `Seed interests for user ${i}`,
         links: `https://example.com/user${i}`,
         is_complete: true,
+        is_live: true,
         updated_at: new Date().toISOString(),
       })
 

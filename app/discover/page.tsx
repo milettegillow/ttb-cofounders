@@ -14,11 +14,13 @@ type Profile = {
   id: string
   user_id: string
   display_name: string
-  role: string
-  location: string | null
-  skills: string | null
-  bio: string | null
+  domain_expertise: string | null
+  technical_expertise: string | null
+  location_tz: string | null
+  skills_background: string | null
+  interests_building: string | null
   links: string | null
+  linkedin_url: string | null
   updated_at: string
 }
 
@@ -191,11 +193,12 @@ export default function Discover() {
     // Build exclusion array (excluding current user)
     const excludedIds = Array.from(exclusionSet).filter((id) => id !== currentUserId)
 
-    // Build profiles query
+    // Build profiles query - only show discoverable profiles
     let query = supabase
       .from('profiles')
-      .select('*')
+      .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, updated_at')
       .eq('is_complete', true)
+      .eq('is_live', true)
       .neq('user_id', currentUserId)
 
     // Apply exclusion filter if there are excluded users
@@ -290,25 +293,27 @@ export default function Discover() {
       }}>
         <h2 style={{ fontSize: '32px', marginBottom: '10px' }}>{currentProfile.display_name}</h2>
         
-        <span className="ttb-pill" style={{ marginBottom: '15px' }}>
-          {currentProfile.role}
-        </span>
-
-        {currentProfile.location && (
-          <p style={{ marginBottom: '15px', color: 'var(--muted)' }}>📍 {currentProfile.location}</p>
+        {currentProfile.technical_expertise && (
+          <span className="ttb-pill" style={{ marginBottom: '15px' }}>
+            {currentProfile.technical_expertise}
+          </span>
         )}
 
-        {currentProfile.skills && (
+        {currentProfile.location_tz && (
+          <p style={{ marginBottom: '15px', color: 'var(--muted)' }}>📍 {currentProfile.location_tz}</p>
+        )}
+
+        {currentProfile.skills_background && (
           <div style={{ marginBottom: '20px' }}>
-            <strong>Skills:</strong>
-            <p style={{ marginTop: '5px' }}>{currentProfile.skills}</p>
+            <strong>Skills & Background:</strong>
+            <p style={{ marginTop: '5px' }}>{currentProfile.skills_background}</p>
           </div>
         )}
 
-        {currentProfile.bio && (
+        {currentProfile.interests_building && (
           <div style={{ marginBottom: '20px' }}>
-            <strong>Bio:</strong>
-            <p style={{ marginTop: '5px' }}>{currentProfile.bio}</p>
+            <strong>Interested in Building:</strong>
+            <p style={{ marginTop: '5px' }}>{currentProfile.interests_building}</p>
           </div>
         )}
 

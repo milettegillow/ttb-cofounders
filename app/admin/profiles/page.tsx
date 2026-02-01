@@ -7,8 +7,8 @@ import { supabase } from '@/src/lib/supabaseClient'
 type Profile = {
   user_id: string
   display_name: string
-  role: string
-  location: string | null
+  technical_expertise: string | null
+  location_tz: string | null
   is_complete: boolean
   updated_at: string
 }
@@ -130,8 +130,8 @@ export default function AdminProfiles() {
         <thead>
           <tr>
             <th>Display Name</th>
-            <th>Role</th>
-            <th>Location</th>
+            <th>Technical Expertise</th>
+            <th>Location + Timezone</th>
             <th>Complete</th>
             <th>Action</th>
           </tr>
@@ -140,8 +140,8 @@ export default function AdminProfiles() {
           {filteredProfiles.map((profile) => (
             <tr key={profile.user_id}>
               <td>{profile.display_name}</td>
-              <td>{profile.role}</td>
-              <td>{profile.location || '-'}</td>
+              <td>{profile.technical_expertise || '-'}</td>
+              <td>{profile.location_tz || '-'}</td>
               <td>{profile.is_complete ? 'Yes' : 'No'}</td>
               <td>
                 <button
