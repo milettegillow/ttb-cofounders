@@ -229,7 +229,7 @@ function Modal({ isOpen, onClose, profile, whatsapp, photoUrls, getExpertiseTags
             const li = getLinkedInUrl(profile)
             if (!li) return null
             return (
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: '0px' }}>
                 <a
                   href={li}
                   target="_blank"
@@ -241,18 +241,20 @@ function Modal({ isOpen, onClose, profile, whatsapp, photoUrls, getExpertiseTags
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '6px',
-                    borderRadius: '4px',
+                    padding: '0px',
+                    borderRadius: '0px',
+                    background: 'transparent',
                     width: '24px',
                     height: '24px',
+                    outline: 'none',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(92, 225, 230, 0.2)'
-                    e.currentTarget.style.transform = 'scale(1.1)'
+                    e.currentTarget.style.transform = 'scale(1.15)'
+                    e.currentTarget.style.boxShadow = '0 0 12px rgba(92, 225, 230, 0.4)'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
                     e.currentTarget.style.transform = 'scale(1)'
+                    e.currentTarget.style.boxShadow = 'none'
                   }}
                   aria-label="LinkedIn profile"
                 >
@@ -1241,18 +1243,19 @@ export default function Matches() {
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '6px',
+                            padding: '0px',
                             borderRadius: '4px',
                             width: '24px',
                             height: '24px',
+                            outline: 'none',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(92, 225, 230, 0.2)'
-                            e.currentTarget.style.transform = 'scale(1.1)'
+                            e.currentTarget.style.transform = 'scale(1.15)'
+                            e.currentTarget.style.boxShadow = '0 0 12px rgba(92, 225, 230, 0.4)'
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent'
                             e.currentTarget.style.transform = 'scale(1)'
+                            e.currentTarget.style.boxShadow = 'none'
                           }}
                           aria-label="LinkedIn profile"
                         >

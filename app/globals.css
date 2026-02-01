@@ -262,3 +262,26 @@ label {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* LinkedIn icon hover effect - subtle glow + scale, no background */
+.linkedin-icon-link {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.linkedin-icon-link:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 12px rgba(92, 225, 230, 0.4);
+}
+
+/* Discover fields grid - responsive */
+.discover-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .discover-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
