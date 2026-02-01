@@ -49,8 +49,9 @@ export default function Profile() {
   const [message, setMessage] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
   const [verifyingWhatsApp, setVerifyingWhatsApp] = useState(false)
-  const [verificationLink, setVerificationLink] = useState<string | null>(null)
-  const [verificationExpiresAt, setVerificationExpiresAt] = useState<string | null>(null)
+  const [verificationCodeSent, setVerificationCodeSent] = useState(false)
+  const [verificationCode, setVerificationCode] = useState<string>('')
+  const [checkingCode, setCheckingCode] = useState(false)
   const [whatsAppCountry, setWhatsAppCountry] = useState<CountryCode>('GB')
   const [callingCode, setCallingCode] = useState<string>('44') // digits only (no +)
   const [whatsappNational, setWhatsappNational] = useState<string>('')
@@ -216,103 +217,108 @@ export default function Profile() {
     setVerifyingWhatsApp(true)
     setMessage(null)
 
-    // Check if number changed from saved
-    const numberChanged = savedProfile?.whatsapp_number !== whatsappE164
-
-    // First, upsert the WhatsApp number (and reset verification if number changed)
-    const payload = {
-      user_id: session.user.id,
-      whatsapp_number: whatsappE164,
-      // Reset verification if number changed
-      whatsapp_verified: numberChanged ? false : (savedProfile?.whatsapp_verified ?? false),
-      whatsapp_verified_at: numberChanged ? null : (savedProfile?.whatsapp_verified_at ?? null),
-      whatsapp_verify_code: numberChanged ? null : (savedProfile?.whatsapp_verify_code ?? null),
-      whatsapp_verify_expires_at: numberChanged ? null : (savedProfile?.whatsapp_verify_expires_at ?? null),
-      updated_at: new Date().toISOString(),
-    }
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .upsert(payload, { onConflict: 'user_id' })
-      .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live')
-      .single()
-
-    if (error) {
-      setMessage(`Error: ${error.message}`)
-      setSavingWhatsApp(false)
-      setVerifyingWhatsApp(false)
-      return
-    }
-
-    // Update saved state
-    setSavedProfile(data)
-
-    // Now request verification
+    // Request verification via API (server handles profile update)
     try {
       const response = await fetch('/api/whatsapp/request-verification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ phoneE164: whatsappE164, channel: 'sms' }),
       })
 
       const responseData = await response.json()
 
       if (!response.ok) {
-        setMessage(responseData.error || 'Failed to request verification')
+        // Debug log
+        console.error('request-verification failed:', responseData)
+        
+        if (response.status === 409) {
+          // Profile doesn't exist - show inline message
+          setMessage('Please save your profile first, then verify WhatsApp.')
+        } else {
+          setMessage(responseData.error || 'Failed to request verification')
+        }
         setSavingWhatsApp(false)
         setVerifyingWhatsApp(false)
         return
       }
 
-      setVerificationLink(responseData.wa_link)
-      setVerificationExpiresAt(responseData.expires_at)
-      setMessage('Verification code generated! Click the WhatsApp link below to send the message.')
+      setMessage('Verification code sent! Check your SMS messages for the code.')
+      setVerificationCodeSent(true)
+      setSavingWhatsApp(false)
+      setVerifyingWhatsApp(false) // Code sent, now waiting for user to enter it
 
-      // Poll for verification status every 3 seconds
-      const pollInterval = setInterval(async () => {
-        if (!session?.user?.id) {
-          clearInterval(pollInterval)
-          return
-        }
-
-        const { data: profileData, error: fetchError } = await supabase
-          .from('profiles')
-          .select('whatsapp_verified, whatsapp_verified_at')
-          .eq('user_id', session.user.id)
-          .single()
-
-        if (!fetchError && profileData?.whatsapp_verified) {
-          clearInterval(pollInterval)
-          setVerifyingWhatsApp(false)
-          setVerificationLink(null)
-          setVerificationExpiresAt(null)
-          setMessage('WhatsApp verified successfully!')
-          
-          // Refresh saved profile
-          const { data: updatedProfile } = await supabase
-            .from('profiles')
-            .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live')
-            .eq('user_id', session.user.id)
-            .single()
-          
-          if (updatedProfile) {
-            setSavedProfile(updatedProfile)
-          }
-        }
-      }, 3000)
-
-      // Stop polling after 5 minutes
-      setTimeout(() => {
-        clearInterval(pollInterval)
-        setVerifyingWhatsApp(false)
-      }, 5 * 60 * 1000)
+      // Refresh saved profile to get updated WhatsApp number
+      const { data: refreshedProfile } = await supabase
+        .from('profiles')
+        .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live')
+        .eq('user_id', session.user.id)
+        .single()
+      
+      if (refreshedProfile) {
+        setSavedProfile(refreshedProfile)
+      }
 
     } catch (err: any) {
       setMessage(err.message || 'Failed to request verification')
+      setSavingWhatsApp(false)
+      setVerifyingWhatsApp(false)
+    }
+  }
+
+  // Handle code verification
+  const handleVerifyCode = async () => {
+    if (!session?.user?.id || !verificationCode || verificationCode.trim().length === 0) {
+      setMessage('Please enter the verification code.')
+      return
     }
 
-    setSavingWhatsApp(false)
+    setCheckingCode(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/whatsapp/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: verificationCode.trim() }),
+      })
+
+      const responseData = await response.json()
+
+      if (!response.ok) {
+        console.error('verify-code failed:', responseData)
+        setMessage(responseData.message || responseData.error || 'Failed to verify code')
+        setCheckingCode(false)
+        return
+      }
+
+      if (responseData.ok && responseData.status === 'approved') {
+        setMessage('Phone number verified successfully!')
+        setVerificationCodeSent(false)
+        setVerificationCode('')
+        
+        // Refresh saved profile
+        const { data: refreshedProfile } = await supabase
+          .from('profiles')
+          .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live')
+          .eq('user_id', session.user.id)
+          .single()
+        
+        if (refreshedProfile) {
+          setSavedProfile(refreshedProfile)
+        }
+      } else {
+        setMessage(responseData.message || 'Code verification failed. Please try again.')
+      }
+    } catch (err: any) {
+      console.error('Error verifying code:', err)
+      setMessage(err.message || 'Failed to verify code')
+    }
+
+    setCheckingCode(false)
   }
 
   const [formData, setFormData] = useState({
@@ -522,77 +528,6 @@ export default function Profile() {
   }
 
 
-  const handleRequestVerification = async () => {
-    if (!session?.user?.id || !savedProfile) return
-
-    // Only require that WhatsApp number is saved (not the full profile)
-    if (!savedProfile.whatsapp_number) {
-      setMessage('Please save your WhatsApp number first.')
-      return
-    }
-
-    if (savedProfile.whatsapp_verified) {
-      setMessage('WhatsApp is already verified.')
-      return
-    }
-
-    setVerifyingWhatsApp(true)
-    setMessage(null)
-
-    try {
-      const response = await fetch('/api/whatsapp/request-verification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setMessage(data.error || 'Failed to request verification')
-        setVerifyingWhatsApp(false)
-        return
-      }
-
-      setVerificationLink(data.wa_link)
-      setVerificationExpiresAt(data.expires_at)
-      setMessage('Verification code generated! Click the WhatsApp link below to send the message.')
-
-      // Poll for verification status every 3 seconds
-      const pollInterval = setInterval(async () => {
-        if (!session?.user?.id) {
-          clearInterval(pollInterval)
-          return
-        }
-
-        const { data: profileData, error: fetchError } = await supabase
-          .from('profiles')
-          .select('whatsapp_verified, whatsapp_verified_at')
-          .eq('user_id', session.user.id)
-          .single()
-
-        if (!fetchError && profileData?.whatsapp_verified) {
-          clearInterval(pollInterval)
-          setVerifyingWhatsApp(false)
-          setVerificationLink(null)
-          setVerificationExpiresAt(null)
-          setMessage('WhatsApp verified successfully!')
-          // Refresh profile
-          await fetchProfile(session.user.id)
-        }
-      }, 3000)
-
-      // Stop polling after 15 minutes
-      setTimeout(() => {
-        clearInterval(pollInterval)
-        setVerifyingWhatsApp(false)
-      }, 15 * 60 * 1000)
-    } catch (error: any) {
-      setMessage(`Error: ${error.message || 'Failed to request verification'}`)
-      setVerifyingWhatsApp(false)
-    }
-  }
 
   const setDiscoverable = async (next: boolean) => {
     if (!session?.user?.id || !savedProfile) return
@@ -1015,7 +950,7 @@ export default function Profile() {
             {whatsappNational.trim().length > 0 && !(savedProfile?.whatsapp_verified) && (
               <div className="waVerifyBlock">
                 <p className="waVerifyText">
-                  To become Discoverable, you need to verify WhatsApp. When you match with someone, your WhatsApp number is shared automatically so you can contact each other.
+                  To become Discoverable, you need to verify your phone number. When you match with someone, your WhatsApp is shared automatically so you can contact each other.
                 </p>
                 <div className="waVerifyButton">
                   <button
@@ -1140,8 +1075,8 @@ export default function Profile() {
             }
           `}</style>
 
-          {/* WhatsApp Verification Section - Show after verification requested */}
-          {verificationLink && savedProfile?.whatsapp_number && !savedProfile.whatsapp_verified && (
+          {/* SMS Verification Code Input - Show after code is sent */}
+          {verificationCodeSent && savedProfile?.whatsapp_number && !savedProfile.whatsapp_verified && (
             <div style={{ 
               marginTop: '20px',
               padding: '16px',
@@ -1155,31 +1090,43 @@ export default function Profile() {
                 color: 'var(--ink)',
                 lineHeight: '1.6'
               }}>
-                Click the link below to send the verification message on WhatsApp:
+                Enter the verification code sent to {savedProfile.whatsapp_number}:
               </p>
               
-              <a
-                href={verificationLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ttb-btn ttb-btn-primary"
-                style={{ 
-                  marginTop: '8px',
-                  display: 'inline-block',
-                  textDecoration: 'none'
-                }}
-              >
-                Send verification message on WhatsApp
-              </a>
-              {verificationExpiresAt && (
-                <p style={{ 
-                  marginTop: '12px', 
-                  fontSize: '12px', 
-                  color: 'var(--muted)' 
-                }}>
-                  Code expires at {new Date(verificationExpiresAt).toLocaleTimeString()}
-                </p>
-              )}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="123456"
+                  maxLength={6}
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    color: 'var(--ink)',
+                    fontSize: '16px',
+                    fontFamily: 'monospace',
+                    letterSpacing: '2px',
+                    textAlign: 'center'
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleVerifyCode()
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyCode}
+                  disabled={checkingCode || verificationCode.length < 6}
+                  className="ttb-btn ttb-btn-primary"
+                >
+                  {checkingCode ? 'Verifying...' : 'Verify'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -1231,7 +1178,7 @@ export default function Profile() {
                 padding: '10px 20px',
                 borderRadius: '8px',
                 border: '1px solid var(--border)',
-                background: !savedProfile?.is_live ? 'var(--pink)' : 'rgba(0, 0, 0, 0.3)',
+                background: !savedProfile?.is_live ? 'var(--teal)' : 'rgba(0, 0, 0, 0.3)',
                 color: !savedProfile?.is_live ? 'white' : 'var(--ink)',
                 cursor: isDiscoverableEnabled && !savingVisibility ? 'pointer' : 'not-allowed',
                 opacity: isDiscoverableEnabled && !savingVisibility ? 1 : 0.5,
@@ -1260,7 +1207,7 @@ export default function Profile() {
                 padding: '10px 20px',
                 borderRadius: '8px',
                 border: '1px solid var(--border)',
-                background: savedProfile?.is_live ? 'var(--teal)' : 'rgba(0, 0, 0, 0.3)',
+                background: savedProfile?.is_live ? 'var(--pink)' : 'rgba(0, 0, 0, 0.3)',
                 color: savedProfile?.is_live ? 'white' : 'var(--ink)',
                 cursor: isDiscoverableEnabled && !savingVisibility ? 'pointer' : 'not-allowed',
                 opacity: isDiscoverableEnabled && !savingVisibility ? 1 : 0.5,
