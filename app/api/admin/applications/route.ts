@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { data, error } = await supabaseAdmin
-    .from('applications')
+    .from('pre_applications')
     .select('*')
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
