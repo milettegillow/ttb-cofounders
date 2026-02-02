@@ -15,8 +15,15 @@ countries.registerLocale(enLocale)
 type Application = {
   id: string
   user_id: string
+  email?: string
+  linkedin?: string
+  linkedin_url?: string
+  stem_background?: string
   status: 'pending' | 'approved' | 'rejected'
+  created_at?: string
+  updated_at?: string
 }
+
 
 type Profile = {
   id: string
