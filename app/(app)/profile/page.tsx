@@ -1148,15 +1148,28 @@ export default function Profile() {
   // Check if user has a profile (approved users have profiles)
   // Approved iff profiles row exists for profiles.user_id === auth user id
   if (!savedProfile) {
-    // No profile means not approved - show message
-    // Note: The fetchApplication function already checks profiles.user_id, so if we reach here,
-    // the user doesn't have a profile and is not approved
+    // No profile means not approved
     return (
       <div>
         <p>Your application isn't approved yet.</p>
         <Link href="/apply">Go to application</Link>
       </div>
     )
+  }
+
+  // Profile exists - show banner with missing items
+  const missingItems: string[] = []
+  if (!savedProfile.photo_path) {
+    missingItems.push('Add a profile photo')
+  }
+  if (!savedProfile.whatsapp_verified) {
+    missingItems.push('Verify your WhatsApp number')
+  }
+  if (!savedProfile.is_complete) {
+    missingItems.push('Complete required profile fields')
+  }
+  if (!savedProfile.is_live) {
+    missingItems.push('Turn your profile live when ready')
   }
 
   // Compute completeness from saved profile only (for Discoverable gating)
@@ -1183,6 +1196,35 @@ export default function Profile() {
   return (
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
       <div className="ttb-panel">
+        {/* Banner showing missing items */}
+        {missingItems.length > 0 && (
+          <div style={{
+            marginBottom: '24px',
+            padding: '16px',
+            borderRadius: '8px',
+            border: '1px solid var(--teal)',
+            background: 'rgba(92,225,230,0.1)',
+          }}>
+            <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', color: 'var(--teal)' }}>
+              Complete your profile:
+            </p>
+            <ul style={{ margin: 0, paddingLeft: '20px' }}>
+              {missingItems.map((item, index) => (
+                <li key={index} style={{ marginBottom: '4px' }}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <Link href="/profile" style={{ 
+              display: 'inline-block', 
+              marginTop: '12px',
+              color: 'var(--teal)',
+              textDecoration: 'underline'
+            }}>
+              Go to profile
+            </Link>
+          </div>
+        )}
         {/* Photos section - at the top */}
         <div style={{ 
           marginTop: '24px',

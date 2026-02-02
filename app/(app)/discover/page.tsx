@@ -252,14 +252,15 @@ export default function Discover() {
       status: 'approved' as const,
     })
 
-    if (!fullProfileData.is_complete) {
-      setUserProfile(null)
-      setLoading(false)
-      return
-    }
-
+    // Always set userProfile so we can check is_complete and is_live in the UI
     setUserProfile(fullProfileData)
-    fetchProfiles(userId)
+
+    // Only fetch other profiles if profile is complete and live
+    if (fullProfileData.is_complete && fullProfileData.is_live) {
+      fetchProfiles(userId)
+    } else {
+      setLoading(false)
+    }
   }
 
   const fetchProfiles = async (currentUserId: string) => {
@@ -346,20 +347,29 @@ export default function Discover() {
   // Check if user has a profile (approved users have profiles)
   // Approved iff profiles row exists for profiles.user_id === auth user id
   if (!userProfile) {
-    // No profile means not approved - show appropriate message
-    // Note: We check pre_applications status in checkAccess, but for UI we show generic message
+    // No profile means not approved
     return (
       <div>
-        <p>Your application isn't approved yet.</p>
+        <p>Your application hasn't been approved yet.</p>
         <Link href="/apply">Go to application</Link>
       </div>
     )
   }
 
-  if (!userProfile || !userProfile.is_complete) {
+  // Profile exists - check completion and live status
+  if (!userProfile.is_complete) {
     return (
       <div>
-        <p>Please complete your profile first.</p>
+        <p>Finish your profile to start discovering</p>
+        <Link href="/profile">Go to profile</Link>
+      </div>
+    )
+  }
+
+  if (!userProfile.is_live) {
+    return (
+      <div>
+        <p>Turn your profile live to start discovering</p>
         <Link href="/profile">Go to profile</Link>
       </div>
     )
