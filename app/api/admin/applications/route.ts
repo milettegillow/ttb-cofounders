@@ -36,7 +36,7 @@ export async function PATCH(request: NextRequest) {
 
   // Fetch the application first to get email and linkedin
   const { data: application, error: fetchError } = await supabaseAdmin
-    .from('applications')
+    .from('pre_applications')
     .select('*')
     .eq('id', id)
     .single()
@@ -47,7 +47,7 @@ export async function PATCH(request: NextRequest) {
 
   // Update application status
   const { data, error } = await supabaseAdmin
-    .from('applications')
+    .from('pre_applications')
     .update({
       status,
       reviewed_at: new Date().toISOString(),
