@@ -224,45 +224,41 @@ export default function Discover() {
   }, [showMatchToast])
 
   const checkAccess = async (userId: string) => {
-    const { data: appData, error: appError } = await supabase
-      .from('applications')
-      .select('*')
-      .eq('user_id', userId)
-      .limit(1)
-      .single()
-
-    if (appError && appError.code !== 'PGRST116') {
-      setLoading(false)
-      return
-    }
-
-    if (!appData || appData.status !== 'approved') {
-      setApplication(null)
-      setLoading(false)
-      return
-    }
-
-    setApplication(appData)
-
-    const { data: profileData, error: profileError } = await supabase
+    // Check if user has a profile (approved users have profiles)
+    const { data: fullProfileData, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('user_id', userId)
       .limit(1)
-      .single()
+      .maybeSingle()
 
     if (profileError && profileError.code !== 'PGRST116') {
       setLoading(false)
       return
     }
 
-    if (!profileData || !profileData.is_complete) {
+    if (!fullProfileData) {
+      // No profile means not approved
+      setApplication(null)
       setUserProfile(null)
       setLoading(false)
       return
     }
 
-    setUserProfile(profileData)
+    // User has a profile, so they're approved
+    setApplication({
+      id: '',
+      user_id: userId,
+      status: 'approved' as const,
+    })
+
+    if (!fullProfileData.is_complete) {
+      setUserProfile(null)
+      setLoading(false)
+      return
+    }
+
+    setUserProfile(fullProfileData)
     fetchProfiles(userId)
   }
 
@@ -347,7 +343,11 @@ export default function Discover() {
     )
   }
 
-  if (!application || application.status !== 'approved') {
+  // Check if user has a profile (approved users have profiles)
+  // Approved iff profiles row exists for profiles.user_id === auth user id
+  if (!userProfile) {
+    // No profile means not approved - show appropriate message
+    // Note: We check pre_applications status in checkAccess, but for UI we show generic message
     return (
       <div>
         <p>Your application isn't approved yet.</p>

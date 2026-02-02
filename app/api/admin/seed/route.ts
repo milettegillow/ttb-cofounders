@@ -168,20 +168,20 @@ export async function POST(request: NextRequest) {
 
     const userId = userData.user.id
 
-    // Insert application
+    // Insert pre_application (application queue)
     const { error: appError } = await supabaseAdmin
-      .from('applications')
+      .from('pre_applications')
       .insert({
-        user_id: userId,
         email: email,
-        linkedin: profileData.linkedin_url,
+        linkedin: profileData.linkedin_url, // legacy field
+        linkedin_url: profileData.linkedin_url, // canonical field
         stem_background: profileData.skills_background,
         status: 'approved',
         reviewed_at: new Date().toISOString(),
       })
 
     if (appError) {
-      console.error(`Failed to create application for user ${index}:`, appError)
+      console.error(`Failed to create pre_application for user ${index}:`, appError)
     }
 
     // Insert profile with all fields

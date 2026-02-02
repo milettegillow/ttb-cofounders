@@ -204,20 +204,52 @@ export default function ApplyClient() {
 
   const fetchApplication = async (userId: string) => {
     setApplicationLoading(true)
-    const { data, error } = await supabase
-      .from('applications')
-      .select('*')
+    // Check if user has a profile (approved users have profiles)
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('user_id, email')
       .eq('user_id', userId)
       .limit(1)
-      .single()
+      .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') {
-      setSubmitMessage(`Error loading application: ${error.message}`)
+    if (profileError && profileError.code !== 'PGRST116') {
+      setSubmitMessage(`Error loading profile: ${profileError.message}`)
+      setApplication(null)
+    } else if (profileData) {
+      // User has a profile, so they're approved
+      setApplication({
+        id: '',
+        user_id: userId,
+        email: profileData.email || '',
+        linkedin: '',
+        stem_background: '',
+        status: 'approved' as const,
+      })
+      clearDraft()
     } else {
-      setApplication(data || null)
-      // If application exists, clear any draft
-      if (data) {
-        clearDraft()
+      // No profile, check pre_applications for pending status
+      const { data: preAppData, error: preAppError } = await supabase
+        .from('pre_applications')
+        .select('id, email, status')
+        .ilike('email', session?.user?.email || '')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (preAppError && preAppError.code !== 'PGRST116') {
+        setSubmitMessage(`Error loading application: ${preAppError.message}`)
+        setApplication(null)
+      } else if (preAppData) {
+        setApplication({
+          id: preAppData.id,
+          user_id: userId,
+          email: preAppData.email || '',
+          linkedin: '',
+          stem_background: '',
+          status: preAppData.status as 'pending' | 'approved' | 'rejected',
+        })
+      } else {
+        setApplication(null)
       }
     }
     setApplicationLoading(false)
@@ -227,6 +259,32 @@ export default function ApplyClient() {
     e.preventDefault()
     setLoading(true)
     setMessage(null)
+
+    // Check application status before sending magic link
+    const statusResponse = await fetch('/api/applications/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    })
+
+    let appStatus = null
+    if (statusResponse.ok) {
+      try {
+        const statusData = await statusResponse.json()
+        appStatus = statusData.status
+      } catch (parseError) {
+        // Ignore parse errors, continue with sign-in flow
+      }
+    }
+
+    // If status is pending, show pending message and stop
+    if (appStatus === 'pending') {
+      setMessage('Your application is pending — please wait to hear back from us.')
+      setLoading(false)
+      return
+    }
 
     // Use NEXT_PUBLIC_SITE_URL for redirect, fallback to window.location.origin for local dev
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
@@ -300,8 +358,35 @@ export default function ApplyClient() {
           degraded = true
         }
 
-        // Step 2: If email exists in auth, switch to Sign in tab immediately
+        // Step 2: If email exists in auth, check application status
         if (emailExists) {
+          // Check if there's a pending application
+          const statusResponse = await fetch('/api/applications/status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: formData.email }),
+          })
+
+          let appStatus = null
+          if (statusResponse.ok) {
+            try {
+              const statusData = await statusResponse.json()
+              appStatus = statusData.status
+            } catch (parseError) {
+              // Ignore parse errors, continue with sign-in flow
+            }
+          }
+
+          // If status is pending, show pending message and stop
+          if (appStatus === 'pending') {
+            setSubmitMessage('Your application is pending — please wait to hear back from us.')
+            setSubmitting(false)
+            return
+          }
+
+          // Otherwise, switch to Sign in tab
           setExistingAccountNotice(true)
           setEmail(formData.email) // Prefill email in sign in form
           setActiveTab('signin')
@@ -354,7 +439,7 @@ export default function ApplyClient() {
       }
     }
 
-    // If signed in, submit to database
+    // If signed in, submit to pre_applications (application queue)
     setSubmitting(true)
     setSubmitMessage(null)
 
@@ -363,12 +448,13 @@ export default function ApplyClient() {
     const canonicalLinkedIn = canonicalizeLinkedIn(formData.linkedin)
 
     const { error } = await supabase
-      .from('applications')
+      .from('pre_applications')
       .insert({
-        user_id: session.user.id,
         email: emailToStore,
-        linkedin: canonicalLinkedIn,
+        linkedin: canonicalLinkedIn, // legacy field
+        linkedin_url: canonicalLinkedIn, // canonical field
         stem_background: formData.stem_background,
+        status: 'pending',
       })
 
     if (error) {

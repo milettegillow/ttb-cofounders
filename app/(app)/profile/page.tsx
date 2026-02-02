@@ -407,26 +407,36 @@ export default function Profile() {
   }, [])
 
   const fetchApplication = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('applications')
-      .select('*')
+    // Check if user has a profile (approved users have profiles)
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('user_id, email')
       .eq('user_id', userId)
       .limit(1)
-      .single()
+      .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') {
-      setMessage(`Error loading application: ${error.message}`)
+    if (profileError && profileError.code !== 'PGRST116') {
+      setMessage(`Error loading profile: ${profileError.message}`)
       setLoading(false)
       return
     }
 
-    if (!data || data.status !== 'approved') {
+    if (!profileData) {
+      // No profile means not approved
       setApplication(null)
       setLoading(false)
       return
     }
 
-    setApplication(data)
+    // User has a profile, so they're approved
+    setApplication({
+      id: '',
+      user_id: userId,
+      email: profileData.email || '',
+      linkedin: '',
+      stem_background: '',
+      status: 'approved' as const,
+    })
     fetchProfile(userId)
     fetchPhotos(userId)
   }
@@ -1128,7 +1138,12 @@ export default function Profile() {
     )
   }
 
-  if (!application || application.status !== 'approved') {
+  // Check if user has a profile (approved users have profiles)
+  // Approved iff profiles row exists for profiles.user_id === auth user id
+  if (!savedProfile) {
+    // No profile means not approved - show message
+    // Note: The fetchApplication function already checks profiles.user_id, so if we reach here,
+    // the user doesn't have a profile and is not approved
     return (
       <div>
         <p>Your application isn't approved yet.</p>
