@@ -549,14 +549,15 @@ export default function Profile() {
         // Look up pre_application by email (case-insensitive)
         const { data: preApp } = await supabase
           .from('pre_applications')
-          .select('linkedin, email')
+          .select('linkedin, linkedin_url, email')
           .ilike('email', session.user.email)
           .eq('status', 'approved')
           .limit(1)
           .single()
         
         if (preApp) {
-          preAppLinkedIn = preApp.linkedin || null
+          // Prefer linkedin_url, fallback to linkedin for backward compatibility
+          preAppLinkedIn = preApp.linkedin_url ?? preApp.linkedin ?? null
           preAppEmail = preApp.email || null
         }
       } catch (err) {

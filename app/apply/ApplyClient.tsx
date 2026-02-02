@@ -315,7 +315,8 @@ export default function ApplyClient() {
           .from('pre_applications')
           .insert({
             email: formData.email,
-            linkedin: canonicalLinkedIn,
+            linkedin: canonicalLinkedIn, // legacy field
+            linkedin_url: canonicalLinkedIn, // canonical field
             stem_background: formData.stem_background,
             status: 'pending',
           })

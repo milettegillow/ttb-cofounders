@@ -7,7 +7,8 @@ import { supabase } from '@/src/lib/supabaseClient'
 type Application = {
   id: string
   email: string
-  linkedin: string
+  linkedin?: string
+  linkedin_url?: string
   stem_background: string
   created_at: string
   status: string
@@ -109,47 +110,167 @@ export default function AdminApplications() {
   }
 
   return (
-    <div>
-      <h1>Pending Applications</h1>
+    <div
+      style={{
+        maxWidth: 980,
+        margin: '0 auto',
+        padding: '28px 18px 60px',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+        <h1 style={{ margin: 0, fontSize: 44, letterSpacing: -1 }}>Pending Applications</h1>
+        <div style={{ color: 'var(--muted)', fontSize: 14 }}>
+          {loading ? 'Loading…' : `${applications.length} pending`}
+        </div>
+      </div>
 
-      {error && <p>Error: {error}</p>}
+      {error && (
+        <div
+          style={{
+            marginTop: 16,
+            padding: '12px 14px',
+            borderRadius: 12,
+            border: '1px solid rgba(239,31,159,0.35)',
+            background: 'rgba(239,31,159,0.08)',
+            color: 'var(--ink)',
+            fontSize: 14,
+          }}
+        >
+          <strong style={{ color: 'var(--pink)' }}>Error:</strong> {error}
+        </div>
+      )}
 
       {applications.length === 0 ? (
-        <p>No pending applications</p>
+        <div style={{ marginTop: 24, color: 'var(--muted)', fontSize: 16 }}>
+          No pending applications
+        </div>
       ) : (
-        <ul>
-          {applications.map((app) => (
-            <li key={app.id}>
-              <div>
-                <strong>Email:</strong> {app.email}
-              </div>
-              <div>
-                <strong>LinkedIn:</strong> {app.linkedin}
-              </div>
-              <div>
-                <strong>STEM background:</strong> {app.stem_background}
-              </div>
-              <div>
-                <strong>Created:</strong> {new Date(app.created_at).toLocaleString()}
-              </div>
-              <div>
-                <button
-                  onClick={() => handleStatusUpdate(app.id, 'approved')}
-                  disabled={updating === app.id}
+        <div style={{ marginTop: 18, display: 'grid', gap: 14 }}>
+          {applications.map((app) => {
+            const linkedin = app.linkedin_url ?? app.linkedin ?? ''
+            const created = new Date(app.created_at).toLocaleString()
+
+            return (
+              <div
+                key={app.id}
+                style={{
+                  borderRadius: 18,
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  background: 'rgba(0,0,0,0.18)',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+                  padding: 16,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                    flexWrap: 'wrap',
+                  }}
                 >
-                  {updating === app.id ? 'Updating...' : 'Approve'}
-                </button>
-                <button
-                  onClick={() => handleStatusUpdate(app.id, 'rejected')}
-                  disabled={updating === app.id}
+                  <div style={{ minWidth: 260 }}>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>
+                      Submitted {created}
+                    </div>
+
+                    <div style={{ fontSize: 18, fontWeight: 650, color: 'var(--ink)' }}>
+                      {app.email}
+                    </div>
+
+                    <div style={{ marginTop: 8, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          padding: '6px 10px',
+                          borderRadius: 999,
+                          border: '1px solid rgba(92,225,230,0.35)',
+                          background: 'rgba(92,225,230,0.10)',
+                          color: 'var(--teal)',
+                        }}
+                      >
+                        status: {app.status}
+                      </span>
+
+                      {linkedin && (
+                        <a
+                          href={linkedin}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            fontSize: 12,
+                            padding: '6px 10px',
+                            borderRadius: 999,
+                            border: '1px solid rgba(255,255,255,0.14)',
+                            background: 'rgba(255,255,255,0.06)',
+                            color: 'var(--ink)',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          View LinkedIn →
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <button
+                      onClick={() => handleStatusUpdate(app.id, 'approved')}
+                      disabled={updating === app.id}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: 12,
+                        border: '1px solid rgba(239,31,159,0.55)',
+                        background: 'rgba(239,31,159,0.20)',
+                        color: 'var(--ink)',
+                        fontWeight: 700,
+                        cursor: updating === app.id ? 'not-allowed' : 'pointer',
+                        opacity: updating === app.id ? 0.7 : 1,
+                      }}
+                    >
+                      {updating === app.id ? 'Updating…' : 'Approve'}
+                    </button>
+
+                    <button
+                      onClick={() => handleStatusUpdate(app.id, 'rejected')}
+                      disabled={updating === app.id}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: 12,
+                        border: '1px solid rgba(255,255,255,0.18)',
+                        background: 'rgba(255,255,255,0.06)',
+                        color: 'var(--ink)',
+                        fontWeight: 650,
+                        cursor: updating === app.id ? 'not-allowed' : 'pointer',
+                        opacity: updating === app.id ? 0.7 : 1,
+                      }}
+                    >
+                      {updating === app.id ? 'Updating…' : 'Reject'}
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 14,
+                    paddingTop: 12,
+                    borderTop: '1px solid rgba(255,255,255,0.10)',
+                    color: 'var(--ink)',
+                    lineHeight: 1.5,
+                    fontSize: 14,
+                    whiteSpace: 'pre-wrap',
+                  }}
                 >
-                  {updating === app.id ? 'Updating...' : 'Reject'}
-                </button>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>STEM background</div>
+                  {app.stem_background}
+                </div>
               </div>
-            </li>
-          ))}
-        </ul>
+            )
+          })}
+        </div>
       )}
     </div>
   )
+
 }

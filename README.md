@@ -43,6 +43,14 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Database Schema Notes
+
+### Canonical Fields
+- **LinkedIn URL**: Use `linkedin_url` as the canonical field for both `profiles` and `pre_applications` tables.
+  - The `linkedin` column in `pre_applications` is maintained for backward compatibility during migration.
+  - When reading LinkedIn data, prefer `linkedin_url ?? linkedin ?? ''` for fallback support.
+  - When writing LinkedIn data, write to both `linkedin` (legacy) and `linkedin_url` (canonical) for compatibility.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
