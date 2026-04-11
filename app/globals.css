@@ -285,3 +285,65 @@ label {
     grid-template-columns: 1fr;
   }
 }
+
+/* Discover card: mobile-first layout */
+.discover-header-mobile {
+  display: none;
+}
+.discover-header-desktop {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .discover-header-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .discover-header-desktop {
+    display: none;
+  }
+  .discover-photo-mobile {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .discover-name-mobile {
+    font-size: 24px !important;
+  }
+  .discover-tags-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .discover-card {
+    padding: 16px !important;
+  }
+  .discover-buttons {
+    width: 100%;
+  }
+  .discover-buttons .ttb-btn {
+    flex: 1;
+    padding: 16px 0 !important;
+    font-size: 16px !important;
+  }
+  .discover-hint {
+    display: none;
+  }
+}
+
+/* Nav responsive: hamburger on mobile, inline links on desktop */
+.nav-mobile {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .nav-desktop {
+    display: none !important;
+  }
+  .nav-mobile {
+    display: block;
+  }
+}

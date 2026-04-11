@@ -403,240 +403,198 @@ export default function Discover() {
         </div>
       )}
 
-      <div 
-        className="ttb-card" 
-        style={{ 
-          width: '100%', 
-          maxWidth: '1200px', 
+      <div
+        className="ttb-card discover-card"
+        style={{
+          width: '100%',
+          maxWidth: '1200px',
           margin: '0 0 12px 0',
           padding: '24px',
           ...cardStyle,
         }}
       >
-        {/* Header: Photo + Name + Location row */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '24px',
-          marginBottom: '24px',
-          paddingRight: '8px',
-        }}>
-          {/* Photo */}
-          <div style={{
-            width: '96px',
-            height: '96px',
-            borderRadius: '50%',
-            overflow: 'hidden',
-            background: 'rgba(255, 255, 255, 0.1)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
+        {/* Mobile layout: stacked photo + info */}
+        <div className="discover-header-mobile">
+          {/* Large photo */}
+          <div className="discover-photo-mobile">
             {currentPhotoUrl ? (
               <img
                 src={currentPhotoUrl}
                 alt={getName(currentProfile)}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
               />
             ) : (
               <div style={{
-                width: '100%',
-                height: '100%',
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                width: '100%', height: '100%',
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  style={{ opacity: 0.5 }}
-                >
-                  <path
-                    d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z"
-                    stroke="rgba(255, 255, 255, 0.6)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M20.59 22C20.59 18.13 16.74 15 12 15C7.26 15 3.41 18.13 3.41 22"
-                    stroke="rgba(255, 255, 255, 0.6)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.5 }}>
+                  <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M20.59 22C20.59 18.13 16.74 15 12 15C7.26 15 3.41 18.13 3.41 22" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
             )}
           </div>
-          
-          {/* Right side: Name + Location row */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Name */}
-            <h2 style={{ fontSize: '32px', margin: '0 0 6px 0', fontWeight: '600' }}>{getName(currentProfile)}</h2>
-            
-            {/* Location + LinkedIn on left, Domain + Tech on right */}
-            <div style={{ display: 'flex', alignItems: 'center', marginTop: '6px' }}>
-              {/* Left cluster: Location + LinkedIn icon (stacked) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {getLocation(currentProfile) && (
-                  <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>📍 {getLocation(currentProfile)}</p>
-                )}
-                <a
-                  href={linkedInUrl || 'https://www.linkedin.com/feed/'}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  onClick={(e) => e.stopPropagation()}
-                  onFocus={(e) => {
-                    e.currentTarget.style.outline = 'none'
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.outline = 'none'
-                  }}
-                  style={{
-                    color: 'var(--teal)',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    width: '24px',
-                    height: '24px',
-                    outline: 'none',
-                    border: 'none',
-                    background: 'transparent',
-                    boxShadow: 'none',
-                    WebkitTapHighlightColor: 'transparent',
-                    padding: 0,
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.12)'
-                    e.currentTarget.style.boxShadow = '0 0 12px rgba(92, 225, 230, 0.4)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)'
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
-                  aria-label="LinkedIn profile"
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+
+          {/* Name + location + LinkedIn row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 className="discover-name-mobile" style={{ margin: '0 0 4px 0', fontWeight: '600' }}>{getName(currentProfile)}</h2>
+              {getLocation(currentProfile) && (
+                <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>📍 {getLocation(currentProfile)}</p>
+              )}
+            </div>
+            <a
+              href={linkedInUrl || 'https://www.linkedin.com/feed/'}
+              target="_blank"
+              rel="noreferrer noopener"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                color: 'var(--teal)', textDecoration: 'none',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: '36px', height: '36px', flexShrink: 0,
+                background: 'transparent', border: 'none', outline: 'none',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+              aria-label="LinkedIn profile"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+            </a>
+          </div>
+
+          {/* Tags */}
+          <div className="discover-tags-mobile">
+            {(() => {
+              const domainTags = parseTags(currentProfile.domain_expertise || null)
+              const techTags = parseTags(currentProfile.technical_expertise || null)
+              if (domainTags.length === 0 && techTags.length === 0) return null
+              return (
+                <>
+                  {domainTags.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--pink)', fontWeight: '600' }}>Domain</span>
+                      {domainTags.map((tag, idx) => (
+                        <span key={`d-${idx}`} style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 999, fontSize: '12px', border: '1px solid var(--pink)', background: 'rgba(239,31,159,0.15)', color: 'rgba(255,255,255,0.9)' }}>{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                  {techTags.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--teal)', fontWeight: '600' }}>Tech</span>
+                      {techTags.map((tag, idx) => (
+                        <span key={`t-${idx}`} style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 999, fontSize: '12px', border: '1px solid var(--teal)', background: 'rgba(92,225,230,0.15)', color: 'rgba(255,255,255,0.9)' }}>{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
+          </div>
+        </div>
+
+        {/* Desktop layout: original horizontal photo + info */}
+        <div className="discover-header-desktop">
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '24px',
+            marginBottom: '24px',
+            paddingRight: '8px',
+          }}>
+            {/* Photo */}
+            <div style={{
+              width: '96px', height: '96px', borderRadius: '50%', overflow: 'hidden',
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.1)',
+              flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {currentPhotoUrl ? (
+                <img src={currentPhotoUrl} alt={getName(currentProfile)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => { e.currentTarget.style.display = 'none' }} />
+              ) : (
+                <div style={{
+                  width: '100%', height: '100%',
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.5 }}>
+                    <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M20.59 22C20.59 18.13 16.74 15 12 15C7.26 15 3.41 18.13 3.41 22" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                </a>
-              </div>
-              
-              {/* Right cluster: Domain + Tech blocks */}
-              <div style={{
-                marginLeft: 'auto',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: '48px',
-              }}>
-                {/* Domain block */}
-                {(() => {
-                  const domainValue = currentProfile.domain_expertise || currentProfile.domain_expertise_tags || null
-                  const domainTags = parseTags(domainValue)
-                  if (domainTags.length === 0) return null
-                  return (
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: '8px',
-                      minWidth: '140px',
-                    }}>
-                      <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--pink)', fontWeight: '600', lineHeight: '1.2' }}>
-                        DOMAIN
+                </div>
+              )}
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ fontSize: '32px', margin: '0 0 6px 0', fontWeight: '600' }}>{getName(currentProfile)}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', marginTop: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {getLocation(currentProfile) && (
+                    <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>📍 {getLocation(currentProfile)}</p>
+                  )}
+                  <a
+                    href={linkedInUrl || 'https://www.linkedin.com/feed/'}
+                    target="_blank" rel="noreferrer noopener"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      color: 'var(--teal)', textDecoration: 'none',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start',
+                      width: '24px', height: '24px', outline: 'none', border: 'none',
+                      background: 'transparent', boxShadow: 'none',
+                      WebkitTapHighlightColor: 'transparent', padding: 0,
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.boxShadow = '0 0 12px rgba(92,225,230,0.4)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}
+                    aria-label="LinkedIn profile"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                  </a>
+                </div>
+
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '48px' }}>
+                  {(() => {
+                    const domainTags = parseTags(currentProfile.domain_expertise || null)
+                    if (domainTags.length === 0) return null
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', minWidth: '140px' }}>
+                        <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--pink)', fontWeight: '600', lineHeight: '1.2' }}>DOMAIN</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'flex-end' }}>
+                          {domainTags.map((tag, idx) => (
+                            <span key={`domain-${idx}`} style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 999, fontSize: '12px', border: '1px solid var(--pink)', background: 'rgba(239,31,159,0.15)', color: 'rgba(255,255,255,0.9)', boxShadow: '0 0 8px rgba(239,31,159,0.3)' }}>{tag}</span>
+                          ))}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'flex-end' }}>
-                        {domainTags.map((tag, idx) => (
-                          <span
-                            key={`domain-${idx}`}
-                            style={{
-                              display: 'inline-flex',
-                              padding: '4px 10px',
-                              borderRadius: 999,
-                              fontSize: '12px',
-                              border: '1px solid var(--pink)',
-                              background: 'rgba(239, 31, 159, 0.15)',
-                              color: 'rgba(255, 255, 255, 0.9)',
-                              boxShadow: '0 0 8px rgba(239, 31, 159, 0.3)',
-                            }}
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                    )
+                  })()}
+                  {(() => {
+                    const techTags = parseTags(currentProfile.technical_expertise || null)
+                    if (techTags.length === 0) return null
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', minWidth: '140px' }}>
+                        <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--teal)', fontWeight: '600', lineHeight: '1.2' }}>TECH</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'flex-end' }}>
+                          {techTags.map((tag, idx) => (
+                            <span key={`technical-${idx}`} style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 999, fontSize: '12px', border: '1px solid var(--teal)', background: 'rgba(92,225,230,0.15)', color: 'rgba(255,255,255,0.9)', boxShadow: '0 0 8px rgba(92,225,230,0.3)' }}>{tag}</span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )
-                })()}
-                
-                {/* Tech block */}
-                {(() => {
-                  const techValue = currentProfile.technical_expertise || currentProfile.technical_expertise_tags || null
-                  const technicalTags = parseTags(techValue)
-                  if (technicalTags.length === 0) return null
-                  return (
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: '8px',
-                      minWidth: '140px',
-                    }}>
-                      <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--teal)', fontWeight: '600', lineHeight: '1.2' }}>
-                        TECH
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'flex-end' }}>
-                        {technicalTags.map((tag, idx) => (
-                          <span
-                            key={`technical-${idx}`}
-                            style={{
-                              display: 'inline-flex',
-                              padding: '4px 10px',
-                              borderRadius: 999,
-                              fontSize: '12px',
-                              border: '1px solid var(--teal)',
-                              background: 'rgba(92, 225, 230, 0.15)',
-                              color: 'rgba(255, 255, 255, 0.9)',
-                              boxShadow: '0 0 8px rgba(92, 225, 230, 0.3)',
-                            }}
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })()}
+                    )
+                  })()}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Profile Fields - Two Column Grid */}
+        {/* Profile Fields - Two Column Grid (responsive via CSS) */}
         {(() => {
-          // Only show these specific fields with exact labels
           const fieldsToShow = [
             { key: 'availability', label: 'My Availability:' },
             { key: 'skills_background', label: 'Skills & background:' },
@@ -662,47 +620,24 @@ export default function Discover() {
               }}>
                 {fieldsToRender.map(({ key, label, value }) => {
                   const isLinks = key === 'links'
-                  // Check if value contains URLs (http:// or https://)
                   const urlMatch = isLinks ? value.match(/https?:\/\/[^\s]+/i) : null
                   const firstUrl = urlMatch ? urlMatch[0] : null
-                  
+
                   return (
                     <div key={key}>
                       <h3 style={{
-                        margin: '0 0 8px 0',
-                        fontSize: '12px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        color: 'var(--muted)',
-                        fontWeight: '500',
+                        margin: '0 0 8px 0', fontSize: '12px', textTransform: 'uppercase',
+                        letterSpacing: '0.5px', color: 'var(--muted)', fontWeight: '500',
                       }}>
                         {label}
                       </h3>
                       {isLinks && firstUrl ? (
-                        <a
-                          href={firstUrl}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          style={{
-                            color: 'var(--teal)',
-                            textDecoration: 'underline',
-                            fontSize: '14px',
-                            lineHeight: '1.6',
-                            wordWrap: 'break-word',
-                            display: 'block',
-                          }}
-                        >
+                        <a href={firstUrl} target="_blank" rel="noreferrer noopener"
+                          style={{ color: 'var(--teal)', textDecoration: 'underline', fontSize: '14px', lineHeight: '1.6', wordBreak: 'break-word', display: 'block' }}>
                           {value}
                         </a>
                       ) : (
-                        <p style={{
-                          margin: 0,
-                          color: 'var(--ink)',
-                          fontSize: '14px',
-                          lineHeight: '1.6',
-                          whiteSpace: 'pre-wrap',
-                          wordWrap: 'break-word',
-                        }}>
+                        <p style={{ margin: 0, color: 'var(--ink)', fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                           {value}
                         </p>
                       )}
@@ -715,7 +650,8 @@ export default function Discover() {
         })()}
       </div>
 
-      <div style={{ display: 'flex', gap: '20px', marginTop: '16px' }}>
+      {/* Swipe buttons */}
+      <div className="discover-buttons" style={{ display: 'flex', gap: '20px', marginTop: '16px' }}>
         <button
           onClick={() => doSwipe('pass')}
           disabled={inFlight}
@@ -734,7 +670,7 @@ export default function Discover() {
         </button>
       </div>
 
-      <p style={{ marginTop: '20px', color: 'var(--muted)', fontSize: '14px' }}>
+      <p className="discover-hint" style={{ marginTop: '20px', color: 'var(--muted)', fontSize: '14px' }}>
         Use ← → arrow keys to swipe
       </p>
     </div>
