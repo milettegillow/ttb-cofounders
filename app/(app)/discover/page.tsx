@@ -232,17 +232,13 @@ export default function Discover() {
       .limit(1)
       .maybeSingle()
 
-    console.log('[discover] checkAccess profile lookup:', { userId, fullProfileData, profileError })
-
     if (profileError && profileError.code !== 'PGRST116') {
-      console.error('[discover] checkAccess profile error:', profileError)
       setLoading(false)
       return
     }
 
     if (!fullProfileData) {
       // No profile means not approved
-      console.log('[discover] No profile found — user not approved')
       setApplication(null)
       setUserProfile(null)
       setLoading(false)
@@ -259,18 +255,10 @@ export default function Discover() {
     // Always set userProfile so we can check is_complete and is_live in the UI
     setUserProfile(fullProfileData)
 
-    console.log('[discover] User profile state:', {
-      is_complete: fullProfileData.is_complete,
-      is_live: fullProfileData.is_live,
-      photo_path: fullProfileData.photo_path,
-      whatsapp_verified: fullProfileData.whatsapp_verified,
-    })
-
     // Only fetch other profiles if profile is complete and live
     if (fullProfileData.is_complete && fullProfileData.is_live) {
       fetchProfiles(userId)
     } else {
-      console.log('[discover] Skipping fetchProfiles — is_complete:', fullProfileData.is_complete, 'is_live:', fullProfileData.is_live)
       setLoading(false)
     }
   }
@@ -278,79 +266,43 @@ export default function Discover() {
   const fetchProfiles = async (currentUserId: string) => {
     setFetchError(null)
 
-    // Query swipes to get all users already swiped on
-    const { data: swipesData, error: swipesError } = await supabase
-      .from('swipes')
-      .select('to_user_id')
-      .eq('from_user_id', currentUserId)
-
-    if (swipesError) {
-      console.error('[discover] Error fetching swipes:', swipesError)
-    }
-
-    const swipedIds = swipesData ? swipesData.map((s) => s.to_user_id) : []
-    console.log('[discover] Swiped IDs to exclude:', swipedIds)
-
-    // DEBUG: First, count ALL profiles to see what exists
-    const { data: allProfiles, error: countError } = await supabase
-      .from('profiles')
-      .select('user_id, is_live, is_complete, photo_path')
-
-    console.log('[discover] DEBUG all profiles visible to this client:', {
-      count: allProfiles?.length ?? 0,
-      error: countError,
-      profiles: allProfiles?.map(p => ({
-        user_id: p.user_id,
-        is_live: p.is_live,
-        is_complete: p.is_complete,
-        has_photo: !!p.photo_path,
-      })),
-    })
-
-    // Build profiles query
-    let query = supabase
-      .from('profiles')
-      .select('*')
-      .eq('is_live', true)
-      .neq('user_id', currentUserId)
-      .not('photo_path', 'is', null)
-
-    // Exclude already-swiped users
-    if (swipedIds.length > 0) {
-      query = query.not('user_id', 'in', `(${swipedIds.join(',')})`)
-    }
-
-    const { data, error } = await query
-      .order('updated_at', { ascending: false })
-      .limit(25)
-
-    console.log('[discover] Filtered query result:', {
-      currentUserId,
-      returnedCount: data?.length ?? 0,
-      error,
-      firstFew: data?.slice(0, 3).map(p => ({ user_id: p.user_id, is_live: p.is_live, photo_path: p.photo_path })),
-    })
-
-    if (error) {
-      console.error('[discover] Query error:', error.message, error.code)
-      setFetchError('Couldn\'t load discover right now')
-      setLoading(false)
-      return
-    }
-
-    // Filter out profiles with empty photo_path
-    const filteredProfiles = (data || []).filter((p: any) => p.photo_path && p.photo_path.trim() !== '')
-
-    console.log('[discover] After photo_path filter:', filteredProfiles.length, 'of', data?.length)
-
-    setProfiles(filteredProfiles)
-
-    // Load photo URLs
-    filteredProfiles.forEach((profile: any) => {
-      if (profile.photo_path) {
-        loadPhotoUrl(profile.photo_path, profile.user_id)
+    try {
+      const sessionData = await supabase.auth.getSession()
+      const accessToken = sessionData.data.session?.access_token
+      if (!accessToken) {
+        setFetchError('Not authenticated')
+        setLoading(false)
+        return
       }
-    })
+
+      const response = await fetch('/api/discover', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        console.error('[discover] API error:', errData)
+        setFetchError('Couldn\'t load discover right now')
+        setLoading(false)
+        return
+      }
+
+      const profiles = await response.json()
+
+      setProfiles(profiles)
+
+      // Load photo URLs
+      profiles.forEach((profile: any) => {
+        if (profile.photo_path) {
+          loadPhotoUrl(profile.photo_path, profile.user_id)
+        }
+      })
+    } catch (err) {
+      console.error('[discover] Fetch error:', err)
+      setFetchError('Couldn\'t load discover right now')
+    }
 
     setLoading(false)
   }
