@@ -193,7 +193,7 @@ const { error: upsertError } = await supabaseAdmin
     if (linkError || !linkData) {
       console.error('[admin] Failed to generate magic link:', linkError?.message)
       // Do NOT update status - return error so approval is not finalized
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Failed to generate sign-in link - approval not finalized',
         approved: false,
         profileUpserted: true,
@@ -202,9 +202,22 @@ const { error: upsertError } = await supabaseAdmin
       }, { status: 500 })
     }
 
+    // Build the sign-in link that goes directly to our auth callback with
+    // the token_hash as a query param. This matches the format that
+    // signInWithOtp produces (via Supabase email templates), so our
+    // callback page handles it correctly with verifyOtp().
+    //
+    // generateLink().properties.action_link points to the Supabase host
+    // which redirects with a fragment (#access_token=...) that our
+    // callback can't read from useSearchParams(). By linking directly
+    // to our callback with ?token_hash=...&type=magiclink, we get the
+    // same flow as the working sign-in form.
+    const hashedToken = linkData.properties.hashed_token
+    const signInUrl = `${siteUrl}/auth/callback?token_hash=${encodeURIComponent(hashedToken)}&type=magiclink`
+
     // Send approval email using Resend
     const resend = new Resend(process.env.RESEND_API_KEY)
-    
+
     const { error: emailError } = await resend.emails.send({
       from: 'The Tech Bros <no-reply@thetechbros.io>',
       to: normalizedEmail,
@@ -215,14 +228,14 @@ const { error: upsertError } = await supabaseAdmin
           <p>Great news — your application to The Tech Bros co-founder matching platform has been approved.</p>
           <p>Click the button below to sign in and complete your profile:</p>
           <div style="margin: 30px 0;">
-            <a href="${linkData.properties.action_link}" 
+            <a href="${signInUrl}"
                style="display: inline-block; padding: 12px 24px; background-color: #EF1F9F; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
               Sign in
             </a>
           </div>
           <p style="color: #666; font-size: 14px; margin-top: 30px;">
             If the button doesn't work, copy and paste this link into your browser:<br>
-            <a href="${linkData.properties.action_link}" style="color: #EF1F9F;">${linkData.properties.action_link}</a>
+            <a href="${signInUrl}" style="color: #EF1F9F;">${signInUrl}</a>
           </p>
         </div>
       `,
