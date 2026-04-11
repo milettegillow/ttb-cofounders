@@ -10,11 +10,20 @@ function AuthCallbackContent() {
 
   useEffect(() => {
     const handleCallback = async () => {
+      // DEBUG: Log everything arriving at the callback
+      const allParams: Record<string, string> = {}
+      searchParams.forEach((value, key) => { allParams[key] = value })
+      console.log('[auth/callback] URL:', window.location.href)
+      console.log('[auth/callback] Query params:', allParams)
+      console.log('[auth/callback] Hash fragment:', window.location.hash)
+
       const code = searchParams.get('code')
       const tokenHash = searchParams.get('token_hash')
       const type = searchParams.get('type')
       const error = searchParams.get('error')
       const errorDescription = searchParams.get('error_description')
+
+      console.log('[auth/callback] Parsed:', { code, tokenHash, type, error })
 
       // Handle error from URL params
       if (error) {
@@ -41,12 +50,16 @@ function AuthCallbackContent() {
 
       // Handle email OTP flow (token_hash and type parameters)
       if (tokenHash && type) {
-        const { error: verifyError } = await supabase.auth.verifyOtp({
+        console.log('[auth/callback] Calling verifyOtp with:', { token_hash: tokenHash, type })
+        const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
           type: type as any,
         })
 
+        console.log('[auth/callback] verifyOtp result:', { data: verifyData, error: verifyError })
+
         if (verifyError) {
+          console.error('[auth/callback] verifyOtp error:', verifyError.message)
           router.replace(
             `/?error=auth_error&reason=${encodeURIComponent(verifyError.message)}`
           )
@@ -58,6 +71,7 @@ function AuthCallbackContent() {
       }
 
       // Neither code nor token_hash/type present
+      console.log('[auth/callback] No code or token_hash — redirecting to homepage')
       router.replace('/?error=auth_error&reason=missing_params')
     }
 

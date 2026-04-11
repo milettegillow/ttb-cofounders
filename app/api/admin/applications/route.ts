@@ -215,6 +215,11 @@ const { error: upsertError } = await supabaseAdmin
     const hashedToken = linkData.properties.hashed_token
     const signInUrl = `${siteUrl}/auth/callback?token_hash=${encodeURIComponent(hashedToken)}&type=magiclink`
 
+    console.log('[admin] generateLink response properties:', JSON.stringify(linkData.properties, null, 2))
+    console.log('[admin] hashed_token:', hashedToken)
+    console.log('[admin] action_link:', linkData.properties.action_link)
+    console.log('[admin] signInUrl sent in email:', signInUrl)
+
     // Send approval email using Resend
     const resend = new Resend(process.env.RESEND_API_KEY)
 
