@@ -286,8 +286,8 @@ export default function Discover() {
       })
     }
 
-    // Build exclusion array
-    const excludedIds = Array.from(exclusionSet)
+    // Build exclusion array (swiped users only — current user excluded via .neq below)
+    const swipedIds = swipesData ? swipesData.map((s) => s.to_user_id) : []
 
     // Build profiles query
     let query = supabase
@@ -297,9 +297,9 @@ export default function Discover() {
       .neq('user_id', currentUserId)
       .not('photo_path', 'is', null)
 
-    // Apply exclusion filter if there are excluded users
-    if (excludedIds.length > 0) {
-      query = query.not('user_id', 'in', `(${excludedIds.map(id => `"${id}"`).join(',')})`)
+    // Exclude already-swiped users
+    if (swipedIds.length > 0) {
+      query = query.not('user_id', 'in', `(${swipedIds.join(',')})`)
     }
 
     const { data, error } = await query
