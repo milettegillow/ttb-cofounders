@@ -232,13 +232,17 @@ export default function Discover() {
       .limit(1)
       .maybeSingle()
 
+    console.log('[discover] checkAccess profile lookup:', { userId, fullProfileData, profileError })
+
     if (profileError && profileError.code !== 'PGRST116') {
+      console.error('[discover] checkAccess profile error:', profileError)
       setLoading(false)
       return
     }
 
     if (!fullProfileData) {
       // No profile means not approved
+      console.log('[discover] No profile found — user not approved')
       setApplication(null)
       setUserProfile(null)
       setLoading(false)
@@ -255,17 +259,25 @@ export default function Discover() {
     // Always set userProfile so we can check is_complete and is_live in the UI
     setUserProfile(fullProfileData)
 
+    console.log('[discover] User profile state:', {
+      is_complete: fullProfileData.is_complete,
+      is_live: fullProfileData.is_live,
+      photo_path: fullProfileData.photo_path,
+      whatsapp_verified: fullProfileData.whatsapp_verified,
+    })
+
     // Only fetch other profiles if profile is complete and live
     if (fullProfileData.is_complete && fullProfileData.is_live) {
       fetchProfiles(userId)
     } else {
+      console.log('[discover] Skipping fetchProfiles — is_complete:', fullProfileData.is_complete, 'is_live:', fullProfileData.is_live)
       setLoading(false)
     }
   }
 
   const fetchProfiles = async (currentUserId: string) => {
     setFetchError(null)
-    
+
     // Query swipes to get all users already swiped on
     const { data: swipesData, error: swipesError } = await supabase
       .from('swipes')
@@ -273,21 +285,27 @@ export default function Discover() {
       .eq('from_user_id', currentUserId)
 
     if (swipesError) {
-      console.error('Error fetching swipes:', swipesError)
+      console.error('[discover] Error fetching swipes:', swipesError)
     }
 
-    // Build exclusion set
-    const exclusionSet = new Set<string>([currentUserId])
-
-    // Add all swiped user IDs
-    if (swipesData) {
-      swipesData.forEach((swipe) => {
-        exclusionSet.add(swipe.to_user_id)
-      })
-    }
-
-    // Build exclusion array (swiped users only — current user excluded via .neq below)
     const swipedIds = swipesData ? swipesData.map((s) => s.to_user_id) : []
+    console.log('[discover] Swiped IDs to exclude:', swipedIds)
+
+    // DEBUG: First, count ALL profiles to see what exists
+    const { data: allProfiles, error: countError } = await supabase
+      .from('profiles')
+      .select('user_id, is_live, is_complete, photo_path')
+
+    console.log('[discover] DEBUG all profiles visible to this client:', {
+      count: allProfiles?.length ?? 0,
+      error: countError,
+      profiles: allProfiles?.map(p => ({
+        user_id: p.user_id,
+        is_live: p.is_live,
+        is_complete: p.is_complete,
+        has_photo: !!p.photo_path,
+      })),
+    })
 
     // Build profiles query
     let query = supabase
@@ -306,10 +324,15 @@ export default function Discover() {
       .order('updated_at', { ascending: false })
       .limit(25)
 
+    console.log('[discover] Filtered query result:', {
+      currentUserId,
+      returnedCount: data?.length ?? 0,
+      error,
+      firstFew: data?.slice(0, 3).map(p => ({ user_id: p.user_id, is_live: p.is_live, photo_path: p.photo_path })),
+    })
+
     if (error) {
-      console.error('Error fetching profiles:', error)
-      console.error('Error message:', error.message)
-      console.error('Error code:', error.code)
+      console.error('[discover] Query error:', error.message, error.code)
       setFetchError('Couldn\'t load discover right now')
       setLoading(false)
       return
@@ -317,6 +340,8 @@ export default function Discover() {
 
     // Filter out profiles with empty photo_path
     const filteredProfiles = (data || []).filter((p: any) => p.photo_path && p.photo_path.trim() !== '')
+
+    console.log('[discover] After photo_path filter:', filteredProfiles.length, 'of', data?.length)
 
     setProfiles(filteredProfiles)
 
