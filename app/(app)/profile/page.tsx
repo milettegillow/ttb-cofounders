@@ -633,9 +633,8 @@ export default function Profile() {
       finalEmail = session.user.email
     }
 
-    // Upsert payload - always use user_id
+    // Build payload for API route
     const payload: any = {
-      user_id: session.user.id,
       display_name: formData.display_name || null,
       domain_expertise: formData.domain_expertise || null,
       technical_expertise: formData.technical_expertise || null,
@@ -645,31 +644,36 @@ export default function Profile() {
       interests_building: formData.interests_building || null,
       links: formData.links || null,
       linkedin_url: finalLinkedInUrl,
-      // Note: WhatsApp number is saved separately via handleSaveWhatsApp
-      // Keep existing whatsapp_number if not explicitly saving it here
+      // Keep existing whatsapp_number (saved separately via handleSaveWhatsApp)
       whatsapp_number: savedProfile?.whatsapp_number ?? null,
-      updated_at: new Date().toISOString(),
-      // IMPORTANT: keep your existing shouldBeLive logic, but never allow live if incomplete
       is_live: shouldBeLive,
     }
 
-    // Include email if we have a value (column may or may not exist, but upsert will handle it)
     if (finalEmail) {
       payload.email = finalEmail
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .upsert(payload, { onConflict: 'user_id' })
-      .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at, email')
-      .single()
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      })
 
-    if (error) {
-      setMessage(`Error: ${error.message}`)
-    } else {
-      setMessage('Profile saved successfully!')
-      setSavedProfile(data) // Update saved state with returned data
-      setIsDirty(false) // Reset dirty state
+      const data = await response.json()
+
+      if (!response.ok) {
+        setMessage(`Error: ${data.error || 'Failed to save profile'}`)
+      } else {
+        setMessage('Profile saved successfully!')
+        setSavedProfile(data)
+        setIsDirty(false)
+      }
+    } catch (err: any) {
+      setMessage(`Error: ${err.message || 'Failed to save profile'}`)
     }
 
     setSavingProfile(false)
@@ -699,18 +703,26 @@ export default function Profile() {
     setSavingVisibility(true)
     setMessage(null)
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ is_live: next, updated_at: new Date().toISOString() })
-      .eq('id', savedProfile.id)
-      .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at, email')
-      .single()
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ is_live: next }),
+      })
 
-    if (error) {
-      setMessage(`Error: ${error.message}`)
-    } else {
-      setMessage(next ? 'Profile is now discoverable!' : 'Profile is now hidden.')
-      setSavedProfile(data) // Update saved state
+      const data = await response.json()
+
+      if (!response.ok) {
+        setMessage(`Error: ${data.error || 'Failed to update visibility'}`)
+      } else {
+        setMessage(next ? 'Profile is now discoverable!' : 'Profile is now hidden.')
+        setSavedProfile(data)
+      }
+    } catch (err: any) {
+      setMessage(`Error: ${err.message || 'Failed to update visibility'}`)
     }
 
     setSavingVisibility(false)
@@ -776,21 +788,25 @@ export default function Profile() {
 
       console.log('Upload successful:', uploadData)
 
-      // Update profile with photo_path
+      // Update profile with photo_path via API route (bypasses RLS)
       console.log('Updating profile with photo_path:', photoPath)
-      const { data: profileData, error: updateError } = await supabase
-        .from('profiles')
-        .update({
+      const profileResponse = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
           photo_path: photoPath,
           photo_updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', session.user.id)
-        .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at')
-        .single()
+        }),
+      })
 
-      if (updateError) {
-        console.error('Profile update failed:', updateError)
-        setMessage(`Failed to save photo: ${updateError.message}`)
+      const profileData = await profileResponse.json()
+
+      if (!profileResponse.ok) {
+        console.error('Profile update failed:', profileData)
+        setMessage(`Failed to save photo: ${profileData.error || 'Unknown error'}`)
         // Try to clean up uploaded file
         await supabase.storage.from('profile-photos').remove([photoPath])
         setUploadingPhoto(false)
@@ -1089,22 +1105,25 @@ export default function Profile() {
 
       console.log('Photo deleted from storage')
 
-      // Clear photo_path in database
-      const { data: updatedProfile, error: updateError } = await supabase
-        .from('profiles')
-        .update({
+      // Clear photo_path in database via API route (bypasses RLS)
+      const profileResponse = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
           photo_path: null,
           photo_updated_at: null,
-          // If profile was discoverable and is now incomplete, set to hidden
           is_live: false, // Always set to false when removing photo (photo is required)
-        })
-        .eq('user_id', session.user.id)
-        .select('id, user_id, display_name, domain_expertise, technical_expertise, location_tz, skills_background, interests_building, links, linkedin_url, whatsapp_number, whatsapp_verified, whatsapp_verified_at, whatsapp_verify_code, whatsapp_verify_expires_at, availability, is_complete, is_live, photo_path, photo_updated_at')
-        .single()
+        }),
+      })
 
-      if (updateError) {
-        console.error('Failed to update profile:', updateError)
-        setMessage(`Failed to remove photo: ${updateError.message}`)
+      const updatedProfile = await profileResponse.json()
+
+      if (!profileResponse.ok) {
+        console.error('Failed to update profile:', updatedProfile)
+        setMessage(`Failed to remove photo: ${updatedProfile.error || 'Unknown error'}`)
         return
       }
 
